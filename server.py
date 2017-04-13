@@ -65,7 +65,12 @@ def jsonPtsToFeatureColl(requestPts):
     coords = []
     nPts = 0
     for items in jsonPts:
-        
+        nPts += 1
+        if nPts == SEARCH_MAX_TARGETS:
+            # set a last-ditch limit on the number of sources
+            break
+        var pt = ee.Geometry.Point(c)
+
 
 def computeCostDist(sourcesImage):
     frictionSurface = ee.Image(FRICTION_SURFACE)
@@ -85,6 +90,7 @@ def getImageDownloadUrl(accessImage):
     outIm = ee.Image(accessImage).select("ACCESS_BAND")
     # TODO clip as well?
     path = outIm.getDownloadURL({
+        # nominal 30 arcsecond equivalent scale, from Weiss code
         'scale': 927.662423820733
         , 'maxPixels': 400000000
         #, 'region': coords ?
