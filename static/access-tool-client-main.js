@@ -75,3 +75,6 @@ access_tool.App.prototype.toggleDrawing = function(onOrOff){
     this.drawingManager.setMap(null);
   }
 };
+
+// https://developers.google.com/maps/documentation/javascript/datalayer
+// https://developers.google.com/kml/articles/csvtokml
