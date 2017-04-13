@@ -12,3 +12,5 @@ EE_ACCOUNT = 'ee-map-oxford-hsg@ee-api-testing.iam.gserviceaccount.com'
 # openssl pkcs12 -in downloaded-privatekey.p12 -nodes -nocerts > privatekey.pem
 # You can find more detailed instructions in the README.
 EE_PRIVATE_KEY_FILE = 'ee-api-testing.pem'
+
+EE_CREDENTIALS = ee.ServiceAccountCredentials(EE_ACCOUNT, EE_PRIVATE_KEY_FILE)
