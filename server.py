@@ -31,7 +31,7 @@ JINJA2_ENVIRONMENT = jinja2.Environment(
 ###############################################################################
 
 class MainHandler(webapp2.RequestHandler):
-    """Servlet tot load the main Accessibility Tool web page"""
+    """Servlet to load the main Accessibility Tool web page"""
 
     def get(self, path=''):
         template_values = {
