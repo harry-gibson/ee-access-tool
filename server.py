@@ -1,11 +1,11 @@
 import json
-import ee
+import lib.ee as ee
 import webapp2
 import jinja2
-
+import config
 import socket
 from google.appengine.api import urlfetch, users
-
+import os
 ###############################################################################
 #                             Setup                                           #
 ###############################################################################
@@ -20,6 +20,12 @@ ee.data.setDeadline(URL_FETCH_TIMEOUT)
 socket.setdefaulttimeout(URL_FETCH_TIMEOUT)
 urlfetch.set_default_fetch_deadline(URL_FETCH_TIMEOUT)
 
+# Create the Jinja templating system we use to dynamically generate HTML. See:
+# http://jinja.pocoo.org/docs/dev/
+JINJA2_ENVIRONMENT = jinja2.Environment(
+    loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
+    autoescape=True,
+    extensions=['jinja2.ext.autoescape'])
 ###############################################################################
 #                             Web request handlers.                           #
 ###############################################################################
@@ -28,7 +34,12 @@ class MainHandler(webapp2.RequestHandler):
     """Servlet tot load the main Accessibility Tool web page"""
 
     def get(self, path=''):
-        pass
+        template_values = {
+            'eeMapId': "None"
+            ,'eeToken': "None"
+        }
+        template = JINJA2_ENVIRONMENT.get_template('index.html')
+        self.response.out.write(template.render(template_values))
 
 class CostPathHandler(webapp2.RequestHandler):
     """Servlet to handle running a cost path map operation on input points"""
@@ -53,6 +64,11 @@ access_app = webapp2.WSGIApplication([
 #                              Helper functions                               #
 ###############################################################################
 
+def GetAccessBackdropMapId():
+    """Returns the MapID for a backdrop map - maybe friction surface? """
+    # TODO
+    return None
+
 def paintPointsToImage(featureCollPts):
     # TODO we could set an analysis region by creating a mask from a polygon
     blankImage = ee.Image(0.0).byte()
@@ -69,15 +85,14 @@ def jsonPtsToFeatureColl(requestPts):
         if nPts == SEARCH_MAX_TARGETS:
             # set a last-ditch limit on the number of sources
             break
-        var pt = ee.Geometry.Point(c)
+        pt = ee.Geometry.Point(c)
 
 
 def computeCostDist(sourcesImage):
     frictionSurface = ee.Image(FRICTION_SURFACE)
     searchRadius = max(SEARCH_RADIUS_KM, 1000)
     costDist = ee.Image(
-        frictionSurface.cumulativeCost(sourcesImage, searchRadius*1000))
-        .toInt()
+        frictionSurface.cumulativeCost(sourcesImage, searchRadius*1000)).toInt()
     return costDist
 
 def exportAccessImageToDrive(accessImage):

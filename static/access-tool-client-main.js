@@ -7,8 +7,8 @@ var all_overlays = [];
 var map;
 
 access_tool.boot = function(eeMapId, eeToken){
-  google.load('maps', '3', 'other_params':
-    'key=AIzaSyAKG7sWP6OzVg2l5De0pkVNgCwz-DwNxl8&libraries=drawing');
+  google.load('maps', '3', \
+    'other_params': 'key=AIzaSyAKG7sWP6OzVg2l5De0pkVNgCwz-DwNxl8&libraries=drawing');
   google.load('jquery', '1');
 
   google.setOnLoadCallback(function(){
