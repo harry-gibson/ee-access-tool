@@ -84,6 +84,7 @@ access_tool.App.prototype.createDrawingManager = function(){
       draggable: true
     }
   });
+  drawingManager.setMap(map);
   return drawingManager;
 };
 

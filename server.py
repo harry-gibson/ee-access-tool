@@ -14,7 +14,8 @@ SEARCH_RADIUS_KM = 1000
 SEARCH_MAX_TARGETS = 100
 
 ACCESS_BAND = "XXXX" # TODO check the band name created by cumulativeCost function
-FRICTION_SURFACE = 'users/weissdanj/friction_surface_v47'
+FRICTION_SURFACE = 'users/harrygibson/friction_surface_v47'
+USE_BACKDROP = True
 ee.Initialize(config.EE_CREDENTIALS)
 ee.data.setDeadline(URL_FETCH_TIMEOUT)
 socket.setdefaulttimeout(URL_FETCH_TIMEOUT)
@@ -38,6 +39,12 @@ class MainHandler(webapp2.RequestHandler):
             'eeMapId': "None"
             ,'eeToken': "None"
         }
+        if USE_BACKDROP:
+            eeFrictionMapId = GetAccessBackdropMapId()
+            template_values = {
+                'eeMapId': eeFrictionMapId['mapid']
+                ,'eeToken': eeFrictionMapId['token']
+            }
         template = JINJA2_ENVIRONMENT.get_template('index.html')
         self.response.out.write(template.render(template_values))
 
@@ -66,8 +73,16 @@ access_app = webapp2.WSGIApplication([
 
 def GetAccessBackdropMapId():
     """Returns the MapID for a backdrop map - maybe friction surface? """
-    # TODO
-    return None
+    frictionSurface = ee.Image(FRICTION_SURFACE)
+    #Map.addLayer(frictionSurface, {min: 0.0, max: 0.01, palette: "FFFF00,FFA500,800080,4B0082"});
+    frictionVisOpts = {
+            'min': 0.0,
+            'max': 0.01,
+            'palette': "FFFF00,FFA500,800080,4B0082",
+            'opacity': 0.5
+        }
+    return frictionSurface.getMapId(frictionVisOpts)
+    #return None
 
 def paintPointsToImage(featureCollPts):
     # TODO we could set an analysis region by creating a mask from a polygon
