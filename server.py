@@ -32,7 +32,11 @@ JINJA2_ENVIRONMENT = jinja2.Environment(
 ###############################################################################
 
 class MainHandler(webapp2.RequestHandler):
-    """Servlet to load the main Accessibility Tool web page"""
+    """Servlet to load the main Accessibility Tool web page
+
+    This returns the index.html page with the mapid and token for the overlay image
+    either set to point to a rendered version of the friction surface or to 'None',
+    in which case the js code will not create an overlay on top of the googlemap """
 
     def get(self, path=''):
         template_values = {
@@ -40,7 +44,7 @@ class MainHandler(webapp2.RequestHandler):
             ,'eeToken': "None"
         }
         if USE_BACKDROP:
-            eeFrictionMapId = GetAccessBackdropMapId()
+            eeFrictionMapId = GetFrictionMapId()
             template_values = {
                 'eeMapId': eeFrictionMapId['mapid']
                 ,'eeToken': eeFrictionMapId['token']
@@ -49,14 +53,28 @@ class MainHandler(webapp2.RequestHandler):
         self.response.out.write(template.render(template_values))
 
 class CostPathHandler(webapp2.RequestHandler):
-    """Servlet to handle running a cost path map operation on input points"""
+    """Servlet to handle running a cost path map operation on input points.
+
+    Parses the request item called 'points' and paints the points onto a new
+    ee.Image, runs cost path, and returns the mapid and token to add the result
+    to the map, along with the downloadurl for it"""
 
     def get(self):
         # TODO see what the points item passed by maps api is actually called
         requestPts = unicode(self.request.get('points'))
         fcPts = jsonPtsToFeatureColl(requestPts)
 
-
+        srcImage = paintPointsToImage(fcPts)
+        costImage = computeCostDist(srcImage)
+        costImageId = GetAccessMapId(costImage)
+        costImageDownloadUrl = getImageDownloadUrl(costImage)
+        layers = []
+        layers.append({
+            'eeMapId': costImageId['mapid'],
+            'eeToken': costImageId['token'],
+            'downloadUrl': costImageDownloadUrl
+        })
+        self.response.out.write(json.dumps(layers))
 
 # Define the routing from URL paths to request handler types in this file
 # Routing is defined as a WSGIApplication object called access_app, and this
@@ -71,7 +89,7 @@ access_app = webapp2.WSGIApplication([
 #                              Helper functions                               #
 ###############################################################################
 
-def GetAccessBackdropMapId():
+def GetFrictionMapId():
     """Returns the MapID for a backdrop map - maybe friction surface? """
     frictionSurface = ee.Image(FRICTION_SURFACE)
     #Map.addLayer(frictionSurface, {min: 0.0, max: 0.01, palette: "FFFF00,FFA500,800080,4B0082"});
@@ -83,6 +101,16 @@ def GetAccessBackdropMapId():
         }
     return frictionSurface.getMapId(frictionVisOpts)
     #return None
+
+def GetAccessMapId(eeAccessImage):
+    """Returns the MapID for an image returned by the cost path stuff"""
+    accessVisOpts = {
+        'min':0,
+        'max':1000,
+        'opacity':0.7,
+        'palette':"FFFACD,CD8500,8A360F,68228B"
+    }
+    return eeAccessImage.getMapId(accessVisOpts)
 
 def paintPointsToImage(featureCollPts):
     # TODO we could set an analysis region by creating a mask from a polygon
@@ -101,7 +129,6 @@ def jsonPtsToFeatureColl(requestPts):
             # set a last-ditch limit on the number of sources
             break
         pt = ee.Geometry.Point(c)
-
 
 def computeCostDist(sourcesImage):
     frictionSurface = ee.Image(FRICTION_SURFACE)

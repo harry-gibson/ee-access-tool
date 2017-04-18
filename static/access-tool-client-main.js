@@ -5,7 +5,7 @@ access_tool = {};
 var interactionMode = 0; // 0 = draw, 1 = upload CSV
 var all_overlays = [];
 var map;
-
+var app;
 /**
  * Static function to create the access tool "app" when the page has loaded. This will
  * be called from a script in the html file using parameters passed from the python
@@ -22,7 +22,7 @@ access_tool.boot = function(eeMapId, eeToken){
 
   google.setOnLoadCallback(function(){
     var mapLayer = access_tool.App.getEeMapLayer(eeMapId, eeToken);
-    var app = new access_tool.App(mapLayer);
+    app = new access_tool.App(mapLayer);
   });
 
 };
@@ -33,34 +33,40 @@ access_tool.boot = function(eeMapId, eeToken){
  * @param mapLayer
  * @constructor
  */
-access_tool.App = function(mapLayer){
-  this.map = this.createMap(mapLayer);
-  this.drawingManager = this.createDrawingManager();
-  google.maps.event.addListener(this.drawingManager, 'markercomplete', this.gotMarkers);
+access_tool.App = function(mapLayer) {
+    this.map = this.createMap(mapLayer);
+    // we probably don't actually need a drawing manager if we're only using markers
+    // could just wire up the map click event instead
+    this.drawingManager = this.createDrawingManager();
+    this.drawingManager.setMap(this.map);
 
-  // make the drawingManager live to start, i.e.
-  this.toggleDrawing(true);
-
-  // TODO other constructor items here i.e. set up event handling etc
+    google.maps.event.addListener(this.drawingManager, 'markercomplete', this.handleNewMarker);
+    $('#btnRun').click(this.runTool.bind(this));
+    $('#btnClear').click(this.clearMarkers.bind(this));
 }
+  // make the drawingManager live to start, i.e.
+  //this.toggleDrawing(true);
+
+///////////////////////////////////////////////////////////////////////////////
+//                  "Instance" level helpers and constants.                  //
+///////////////////////////////////////////////////////////////////////////////
 
 /**
- * Creates a Google Map with a black background and the given map type rendered.
- * Reused from the TrendyLights demo as a black background is also appropriate
- * for our access map.
+ * Creates a Google Map with a silver/grey styling and, optionally, an overlay
+ * map rendered, which would normally be an Earth Engine image (created as a
+ * google maps overlay using the getEeMapLayer function).
  * The map is anchored to the DOM element with the CSS class 'map'.
  * @param {google.maps.ImageMapType} mapType The map type to include on the map.
  * @return {google.maps.Map} A map instance with the map type rendered.
  */
 access_tool.App.prototype.createMap = function(mapLayer){
   var mapOptions = {
-    //backgroundColor: '#000000',
-    center: access_tool.App.DEFAULT_CENTER,
-    //disableDefaultUI: true,
-    streetViewControl: false,
-    zoom: access_tool.App.DEFAULT_ZOOM,
-      mapTypeId: 'satellite'
-
+      center: access_tool.App.DEFAULT_CENTER,
+      zoom: access_tool.App.DEFAULT_ZOOM,
+      maxZoom: access_tool.App.MAX_ZOOM,
+      mapTypeId: 'roadmap',
+      //disableDefaultUI: true, // not using, to allow satellite view
+      // streetViewControl: false,
   };
   var mapElement = $('.map').get(0);
   var map = new google.maps.Map(mapElement, mapOptions);
@@ -77,14 +83,13 @@ access_tool.App.prototype.createDrawingManager = function(){
     drawingControl: true,
     drawingControlOptions: {
       position: google.maps.ControlPosition.TOP_CENTER,
-      drawingModes: ['marker']//;, 'circle', 'polygon', 'polyline', 'rectangle']
+      drawingModes: ['marker']//, 'circle', 'polygon', 'polyline', 'rectangle']
     },
     markerOptions: {
       icon: 'https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png',
       draggable: true
     }
   });
-  drawingManager.setMap(map);
   return drawingManager;
 };
 
@@ -97,6 +102,37 @@ access_tool.App.prototype.toggleDrawing = function(onOrOff){
   }
 };
 
+access_tool.App.prototype.handleNewMarker = function(res){
+
+};
+
+access_tool.App.prototype.runTool = function(){
+  $.getJSON(
+      '/costpath',
+      {
+        points: this.getPointsJson()
+      },
+      function (data) {
+        map.overlayMapTypes.clear();
+        data.forEach(function(eeLayer, i){
+          var mapId = eeLayer['eeMapId'];
+          var mapToken = eeLayer['eeToken'];
+          var mapLayer = this.getEeMapLayer(mapId, mapToken);
+          map.overlayMapTypes.push(mapLayer);
+        });
+
+      }
+
+  );
+};
+
+access_tool.App.prototype.clearMarkers = function(){
+  return null;
+};
+
+access_tool.App.prototype.getPointsJson = function(){
+  return null;
+}
 // https://developers.google.com/maps/documentation/javascript/datalayer
 // https://developers.google.com/kml/articles/csvtokml
 
@@ -141,10 +177,11 @@ access_tool.App.getEeMapLayer = function(eeMapId, eeToken) {
 /** @type {string} The Earth Engine API URL. */
 access_tool.App.EE_URL = 'https://earthengine.googleapis.com';
 
-
 /** @type {number} The default zoom level for the map. */
 access_tool.App.DEFAULT_ZOOM = 4;
 
+/** @type (number) The max zoom level for the map. */
+access_tool.App.MAX_ZOOM = 10;
 
 /** @type {Object} The default center of the map. */
 access_tool.App.DEFAULT_CENTER = {lng: 5, lat: 50};
@@ -399,5 +436,4 @@ access_tool.App.SILVER_STYLES = [
       }
     ]
   }
-]
-;
+];
