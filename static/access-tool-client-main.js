@@ -40,9 +40,11 @@ access_tool.App = function(mapLayer) {
     this.drawingManager = this.createDrawingManager();
     this.drawingManager.setMap(this.map);
 
-    google.maps.event.addListener(this.drawingManager, 'markercomplete', this.handleNewMarker);
+    google.maps.event.addListener(this.drawingManager, 'markercomplete',
+        this.handleNewMarker.bind(this));
     $('#btnRun').click(this.runTool.bind(this));
     $('#btnClear').click(this.clearMarkers.bind(this));
+    this.markers = [];
 }
   // make the drawingManager live to start, i.e.
   //this.toggleDrawing(true);
@@ -102,8 +104,8 @@ access_tool.App.prototype.toggleDrawing = function(onOrOff){
   }
 };
 
-access_tool.App.prototype.handleNewMarker = function(res){
-
+access_tool.App.prototype.handleNewMarker = function(marker){
+  this.markers.push(marker);
 };
 
 access_tool.App.prototype.runTool = function(){
@@ -112,16 +114,17 @@ access_tool.App.prototype.runTool = function(){
       {
         points: this.getPointsJson()
       },
-      function (data) {
-        map.overlayMapTypes.clear();
-        data.forEach(function(eeLayer, i){
-          var mapId = eeLayer['eeMapId'];
-          var mapToken = eeLayer['eeToken'];
-          var mapLayer = this.getEeMapLayer(mapId, mapToken);
-          map.overlayMapTypes.push(mapLayer);
-        });
-
-      }
+      ((function (data) {
+        this.map.overlayMapTypes.clear();
+        data.forEach(
+            ((function(eeLayer, i){
+              var mapId = eeLayer['eeMapId'];
+              var mapToken = eeLayer['eeToken'];
+              var mapLayer = access_tool.App.getEeMapLayer(mapId, mapToken);
+              this.map.overlayMapTypes.push(mapLayer);
+            }).bind(this))
+        )
+      }).bind(this))
 
   );
 };
@@ -131,7 +134,13 @@ access_tool.App.prototype.clearMarkers = function(){
 };
 
 access_tool.App.prototype.getPointsJson = function(){
-  return null;
+  var jsonArr = [];
+  for (var i = 0; i < this.markers.length; i++){
+    var marker = this.markers[i];
+    var pos = marker.getPosition().toJSON();
+    jsonArr.push(pos);
+  }
+  return JSON.stringify(jsonArr);
 }
 // https://developers.google.com/maps/documentation/javascript/datalayer
 // https://developers.google.com/kml/articles/csvtokml

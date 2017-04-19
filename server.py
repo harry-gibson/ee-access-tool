@@ -67,12 +67,12 @@ class CostPathHandler(webapp2.RequestHandler):
         srcImage = paintPointsToImage(fcPts)
         costImage = computeCostDist(srcImage)
         costImageId = GetAccessMapId(costImage)
-        costImageDownloadUrl = getImageDownloadUrl(costImage)
+        #costImageDownloadUrl = getImageDownloadUrl(costImage)
         layers = []
         layers.append({
             'eeMapId': costImageId['mapid'],
-            'eeToken': costImageId['token'],
-            'downloadUrl': costImageDownloadUrl
+            'eeToken': costImageId['token']#,
+           # 'downloadUrl': costImageDownloadUrl
         })
         self.response.out.write(json.dumps(layers))
 
@@ -128,7 +128,11 @@ def jsonPtsToFeatureColl(requestPts):
         if nPts == SEARCH_MAX_TARGETS:
             # set a last-ditch limit on the number of sources
             break
-        pt = ee.Geometry.Point(c)
+        pt = ee.Geometry.Point(items['lng'],items['lat'])
+        coords.append(pt)
+    featColl = ee.FeatureCollection(coords)
+    return featColl
+
 
 def computeCostDist(sourcesImage):
     frictionSurface = ee.Image(FRICTION_SURFACE)
