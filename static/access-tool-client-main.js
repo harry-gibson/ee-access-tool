@@ -44,7 +44,11 @@ access_tool.App = function(mapLayer) {
         this.handleNewMarker.bind(this));
     $('#btnRun').click(this.runTool.bind(this));
     $('#btnClear').click(this.clearMarkers.bind(this));
+    $('#btnDownload').click(this.downloadMap.bind(this));
     this.markers = [];
+    this.mapDownloadUrl = "";
+    this.refreshControls();
+    $('#btnDownload').prop("disabled", true);
 }
   // make the drawingManager live to start, i.e.
   //this.toggleDrawing(true);
@@ -106,13 +110,20 @@ access_tool.App.prototype.toggleDrawing = function(onOrOff){
 
 access_tool.App.prototype.handleNewMarker = function(marker){
   this.markers.push(marker);
+  this.refreshControls();
 };
 
+/**
+ * Runs the accessibility map search, based on the current points on the map.
+ * The process of running the tool is just making a request to the costpath
+ * endpoint of the server script, passing in the points as a json-encoded string
+ */
 access_tool.App.prototype.runTool = function(){
   $.getJSON(
       '/costpath',
       {
-        points: this.getPointsJson()
+          points: this.getPointsJson(),
+          mapBounds: JSON.stringify(this.map.getBounds())
       },
       ((function (data) {
         this.map.overlayMapTypes.clear();
@@ -122,16 +133,38 @@ access_tool.App.prototype.runTool = function(){
               var mapToken = eeLayer['eeToken'];
               var mapLayer = access_tool.App.getEeMapLayer(mapId, mapToken);
               this.map.overlayMapTypes.push(mapLayer);
+              if (eeLayer.hasOwnProperty('downloadUrl')){
+                this.mapDownloadUrl = eeLayer['downloadUrl'];
+              }
             }).bind(this))
-        )
+        );
+        // don't yet have anywhere to put the download link so disable for now
+        //$('#btnDownload').prop("disabled", false);
       }).bind(this))
-
   );
+  $('#btnRun').prop("disabled", true);
+  $('#btnClear').prop("disabled", true);
+  $('#btnDownload').prop("disabled", true);
 };
 
 access_tool.App.prototype.clearMarkers = function(){
-  return null;
+  for (var i = 0; i< this.markers.length; i++){
+    this.markers[i].setMap(null);
+  }
+  this.markers = [];
+  this.refreshControls();
 };
+
+access_tool.App.prototype.refreshControls = function(){
+  if(this.markers.length > 0){
+    $('#btnRun').prop("disabled", false);
+    $('#btnClear').prop("disabled", false);
+  }
+  else {
+    $('#btnRun').prop("disabled", true);
+    $('#btnClear').prop("disabled", true);
+  }
+}
 
 access_tool.App.prototype.getPointsJson = function(){
   var jsonArr = [];
@@ -142,8 +175,21 @@ access_tool.App.prototype.getPointsJson = function(){
   }
   return JSON.stringify(jsonArr);
 }
+
+access_tool.App.prototype.downloadMap = function(){
+    // temporary solution before the page is further developed to have somewhere
+    // to place the link for the user to click
+    // http://stackoverflow.com/a/41716488
+    // Also eventually we will need to use batch.Export in the server and save it to Drive
+  $('<form></form>')
+     .attr('action', this.mapDownloadUrl)
+     .appendTo('body').submit().remove();
+  $('#btnDownload').prop("disabled", true);
+}
+
 // https://developers.google.com/maps/documentation/javascript/datalayer
 // https://developers.google.com/kml/articles/csvtokml
+// http://sideapps.com/code-tips-and-tricks/add-markers-to-google-map-from-csv/
 
 
 
@@ -190,7 +236,9 @@ access_tool.App.EE_URL = 'https://earthengine.googleapis.com';
 access_tool.App.DEFAULT_ZOOM = 4;
 
 /** @type (number) The max zoom level for the map. */
-access_tool.App.MAX_ZOOM = 10;
+// This is set to 9 which is 305m at the equator, still 3* finer than the
+// friction surface
+access_tool.App.MAX_ZOOM = 9;
 
 /** @type {Object} The default center of the map. */
 access_tool.App.DEFAULT_CENTER = {lng: 5, lat: 50};

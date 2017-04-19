@@ -60,21 +60,26 @@ class CostPathHandler(webapp2.RequestHandler):
     to the map, along with the downloadurl for it"""
 
     def get(self):
-        # TODO see what the points item passed by maps api is actually called
         requestPts = unicode(self.request.get('points'))
-        fcPts = jsonPtsToFeatureColl(requestPts)
-
-        srcImage = paintPointsToImage(fcPts)
+        eeFcPts = jsonPtsToFeatureColl(requestPts)
+        requestRegion = unicode(self.request.get('mapBounds'))
+        eeRectRegion = jsonRegionToRectangle(requestRegion)
+        srcImage = paintPointsToImage(eeFcPts)
         costImage = computeCostDist(srcImage)
         costImageId = GetAccessMapId(costImage)
-        #costImageDownloadUrl = getImageDownloadUrl(costImage)
+        costImageDownloadUrl = getImageDownloadUrl(costImage, eeRectRegion)
         layers = []
         layers.append({
             'eeMapId': costImageId['mapid'],
-            'eeToken': costImageId['token']#,
-           # 'downloadUrl': costImageDownloadUrl
+            'eeToken': costImageId['token'],
+            'downloadUrl': costImageDownloadUrl or ""
         })
         self.response.out.write(json.dumps(layers))
+
+    def post(self):
+        # TODO implement post handler for larger requests
+        pass
+
 
 # Define the routing from URL paths to request handler types in this file
 # Routing is defined as a WSGIApplication object called access_app, and this
@@ -132,7 +137,11 @@ def jsonPtsToFeatureColl(requestPts):
         coords.append(pt)
     featColl = ee.FeatureCollection(coords)
     return featColl
-
+def jsonRegionToRectangle(requestRegion):
+    jsonRegion = json.loads(requestRegion)
+    rect = ee.Geometry.Rectangle([jsonRegion['west'],jsonRegion['south'],
+                                  jsonRegion['east'],jsonRegion['north']]).toGeoJSONString()
+    return rect
 
 def computeCostDist(sourcesImage):
     frictionSurface = ee.Image(FRICTION_SURFACE)
@@ -147,13 +156,14 @@ def exportAccessImageToDrive(accessImage):
     pass
 
 
-def getImageDownloadUrl(accessImage):
-    outIm = ee.Image(accessImage).select("ACCESS_BAND")
+def getImageDownloadUrl(accessImage, exportRegion):
+    return None
+    outIm = ee.Image(accessImage).select("cumulative_cost")
     # TODO clip as well?
     path = outIm.getDownloadURL({
         # nominal 30 arcsecond equivalent scale, from Weiss code
         'scale': 927.662423820733
         , 'maxPixels': 400000000
-        #, 'region': coords ?
+        , 'region': exportRegion
     })
     return path
