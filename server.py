@@ -133,8 +133,11 @@ def jsonPtsToFeatureColl(requestPts):
         if nPts == SEARCH_MAX_TARGETS:
             # set a last-ditch limit on the number of sources
             break
-        pt = ee.Geometry.Point(items['lng'],items['lat'])
-        coords.append(pt)
+        try:
+            pt = ee.Geometry.Point(items['lng'],items['lat'])
+            coords.append(pt)
+        except:
+            pass
     featColl = ee.FeatureCollection(coords)
     return featColl
 def jsonRegionToRectangle(requestRegion):

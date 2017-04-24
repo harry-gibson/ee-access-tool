@@ -213,9 +213,13 @@ access_tool.App.prototype.getPointsJson = function(){
   var jsonArr = [];
   for (var i = 0; i < this.markers.length; i++){
     var marker = this.markers[i];
-    if (marker.lat && marker.lng){
-      var pos = marker.getPosition().toJSON();
+    var markerPos = marker.getPosition();
+    if (markerPos.lat() && markerPos.lng()){
+      var pos = markerPos.toJSON();
       jsonArr.push(pos);
+    }
+    else{
+      console.log("Invalid marker found (no lat/lng)");
     }
   }
   return JSON.stringify(jsonArr);
@@ -303,11 +307,12 @@ access_tool.App.csvToArray = function(csvStringData, delim){
 	// matching groups.
 	var arrMatches = null;
 
-  var nMatches = 0;
-
+  var nRowsRead = 0;
+  var nCols = -1;
+  var thisRowContent = [];
 	// Keep looping over the regular expression matches
 	// until we can no longer find a match.
-	while ((arrMatches = objPattern.exec( csvStringData ) ) && nMatches <
+	while ((arrMatches = objPattern.exec( csvStringData ) ) && arrData.length <
     access_tool.App.MAX_SOURCES)
 	{
 		// Get the delimiter that was found.
@@ -319,10 +324,20 @@ access_tool.App.csvToArray = function(csvStringData, delim){
 		// that this delimiter is a row delimiter.
 		if (strMatchedDelimiter.length && (strMatchedDelimiter != delim))
 		{
-			// Since we have reached a new row of data,
-			// add an empty row to our data array.
-			arrData.push( [] );
-      nMatches ++;
+			// We have reached a new row of data
+      if(nRowsRead == 0){
+        // set the expected number of cols to whatever we get on the first row
+        nCols = arrData[0].length;
+      }
+      if (arrData[arrData.length - 1].length != nCols){
+        // the row didn't have the right number of fields, relative to the first one
+        // discard it
+        var dodgyRow = arrData.pop();
+        console.log("Skipped row with wrong # cols, row number "+nRowsRead+", row content "
+          + dodgyRow);
+      }
+      arrData.push([]);
+      nRowsRead ++;
  	  }
 
 		// Now that we have our delimiter out of the way,
@@ -345,7 +360,13 @@ access_tool.App.csvToArray = function(csvStringData, delim){
 		// it to the data array.
 		arrData[ arrData.length - 1 ].push( strMatchedValue );
 	}
-
+  if (arrData[arrData.length - 1].length != nCols){
+    // the row didn't have the right number of fields, relative to the first one
+    // discard it
+    var dodgyRow = arrData.pop();
+    console.log("Skipped last row with wrong # cols, row number "+nRowsRead+", row content "
+      + dodgyRow);
+  }
 	// Return the parsed data.
 	return( arrData );
 };
