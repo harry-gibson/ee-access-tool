@@ -114,6 +114,8 @@ access_tool.App.prototype.handleNewMarker = function(marker){
   this.refreshControls();
 };
 
+/** Reads a CSV file and loads the lat/long or x/y columns to markers on the map
+*/
 access_tool.App.prototype.createCsvMarkers = function(e){
   var csvFilePath = e.target.files[0];
   var reader = new FileReader();
@@ -123,6 +125,7 @@ access_tool.App.prototype.createCsvMarkers = function(e){
     var headers = parsedContent[0];
     var latFieldIdx = -1;
     var lonFieldIdx = -1;
+    var fileBounds = new google.maps.LatLngBounds();
 
     // guesstimate which is the lat and lon fields
     for (var i = 0; i < headers.length; i++){
@@ -140,16 +143,23 @@ access_tool.App.prototype.createCsvMarkers = function(e){
     if (latFieldIdx < 0 || lonFieldIdx < 0){
       return;
     }
+    var any = false;
 
     for (var i = 1; i < parsedContent.length; i++){
+      any = true;
       var dataRow = parsedContent[i];
       var latitude = parseFloat(dataRow[latFieldIdx]);
       var longitude = parseFloat(dataRow[lonFieldIdx]);
+      var pt = new google.maps.LatLng(latitude, longitude);
       var newMarker = new google.maps.Marker({
-        position: new google.maps.LatLng(latitude, longitude),
+        position: pt,
         map: this.map
       });
       this.markers.push(newMarker);
+      fileBounds.extend(pt);
+    }
+    if(any){
+      this.map.fitBounds(fileBounds);
     }
     this.refreshControls();
   }.bind(this);
@@ -162,6 +172,7 @@ access_tool.App.prototype.createCsvMarkers = function(e){
  * endpoint of the server script, passing in the points as a json-encoded string
  */
 access_tool.App.prototype.runTool = function(){
+  // TODO we will need to use a POST to run more than a few points
   $.getJSON(
       '/costpath',
       {
@@ -209,6 +220,8 @@ access_tool.App.prototype.refreshControls = function(){
   }
 }
 
+/** Gets a JSON representation of all the current markers
+*/
 access_tool.App.prototype.getPointsJson = function(){
   var jsonArr = [];
   for (var i = 0; i < this.markers.length; i++){
