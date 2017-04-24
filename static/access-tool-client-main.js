@@ -45,6 +45,7 @@ access_tool.App = function(mapLayer) {
     $('#btnRun').click(this.runTool.bind(this));
     $('#btnClear').click(this.clearMarkers.bind(this));
     $('#btnDownload').click(this.downloadMap.bind(this));
+    $('#btnCsv').change(this.createCsvMarkers.bind(this));
     this.markers = [];
     this.mapDownloadUrl = "";
     this.refreshControls();
@@ -113,6 +114,48 @@ access_tool.App.prototype.handleNewMarker = function(marker){
   this.refreshControls();
 };
 
+access_tool.App.prototype.createCsvMarkers = function(e){
+  var csvFilePath = e.target.files[0];
+  var reader = new FileReader();
+  reader.onload = function(e){
+    var textContent = reader.result;
+    var parsedContent = access_tool.App.csvToArray(textContent);
+    var headers = parsedContent[0];
+    var latFieldIdx = -1;
+    var lonFieldIdx = -1;
+
+    // guesstimate which is the lat and lon fields
+    for (var i = 0; i < headers.length; i++){
+      var maybeFieldName = headers[i];
+      if (maybeFieldName.toLowerCase().substr(0,3) == "lat" ||
+          maybeFieldName.toLowerCase() == "y"){
+            latFieldIdx = i;
+          }
+      else if (maybeFieldName.toLowerCase().substr(0,3) == "lon" ||
+          maybeFieldName.toLowerCase().substr(0,3) == "lng" ||
+          maybeFieldName.toLowerCase() == "x") {
+            lonFieldIdx = i;
+      }
+    }
+    if (latFieldIdx < 0 || lonFieldIdx < 0){
+      return;
+    }
+
+    for (var i = 1; i < parsedContent.length; i++){
+      var dataRow = parsedContent[i];
+      var latitude = parseFloat(dataRow[latFieldIdx]);
+      var longitude = parseFloat(dataRow[lonFieldIdx]);
+      var newMarker = new google.maps.Marker({
+        position: new google.maps.LatLng(latitude, longitude),
+        map: this.map
+      });
+      this.markers.push(newMarker);
+    }
+    this.refreshControls();
+  }.bind(this);
+  reader.readAsText(csvFilePath);
+}
+
 /**
  * Runs the accessibility map search, based on the current points on the map.
  * The process of running the tool is just making a request to the costpath
@@ -170,8 +213,10 @@ access_tool.App.prototype.getPointsJson = function(){
   var jsonArr = [];
   for (var i = 0; i < this.markers.length; i++){
     var marker = this.markers[i];
-    var pos = marker.getPosition().toJSON();
-    jsonArr.push(pos);
+    if (marker.lat && marker.lng){
+      var pos = marker.getPosition().toJSON();
+      jsonArr.push(pos);
+    }
   }
   return JSON.stringify(jsonArr);
 }
@@ -186,6 +231,7 @@ access_tool.App.prototype.downloadMap = function(){
      .appendTo('body').submit().remove();
   $('#btnDownload').prop("disabled", true);
 }
+
 
 // https://developers.google.com/maps/documentation/javascript/datalayer
 // https://developers.google.com/kml/articles/csvtokml
@@ -228,6 +274,81 @@ access_tool.App.getEeMapLayer = function(eeMapId, eeToken) {
   return new google.maps.ImageMapType(eeMapOptions);
 };
 
+/**
+ * Parses a delimited string (contents of a CSV file) into array of arrays
+ * Taken from http://sideapps.com//code-tips-and-tricks/add-markers-to-google-map-from-csv/
+ * for the handling of quoted field values
+*/
+access_tool.App.csvToArray = function(csvStringData, delim){
+  // It may be preferable to handle CSV parsing server-side ?
+  delim = (delim || ",");
+  // Create a regular expression to parse the CSV values.
+	var objPattern = new RegExp(
+		(
+			// Delimiters.
+			"(\\" + delim + "|\\r?\\n|\\r|^)" +
+
+			// Quoted fields.
+			"(?:\"([^\"]*(?:\"\"[^\"]*)*)\"|" +
+
+			// Standard fields.
+			"([^\"\\" + delim + "\\r\\n]*))"
+		), "gi");
+
+	// Create an array to hold our data. Give the array
+	// a default empty first row.
+	var arrData = [[]];
+
+	// Create an array to hold our individual pattern
+	// matching groups.
+	var arrMatches = null;
+
+  var nMatches = 0;
+
+	// Keep looping over the regular expression matches
+	// until we can no longer find a match.
+	while ((arrMatches = objPattern.exec( csvStringData ) ) && nMatches <
+    access_tool.App.MAX_SOURCES)
+	{
+		// Get the delimiter that was found.
+		var strMatchedDelimiter = arrMatches[ 1 ];
+
+		// Check to see if the given delimiter has a length
+		// (is not the start of string) and if it matches
+		// field delimiter. If id does not, then we know
+		// that this delimiter is a row delimiter.
+		if (strMatchedDelimiter.length && (strMatchedDelimiter != delim))
+		{
+			// Since we have reached a new row of data,
+			// add an empty row to our data array.
+			arrData.push( [] );
+      nMatches ++;
+ 	  }
+
+		// Now that we have our delimiter out of the way,
+		// let's check to see which kind of value we
+		// captured (quoted or unquoted).
+		if (arrMatches[ 2 ]){
+			// We found a quoted value. When we capture
+			// this value, unescape any double quotes.
+			var strMatchedValue = arrMatches[ 2 ].replace(
+				new RegExp( "\"\"", "g" ),
+				"\""
+				);
+    } else
+		{
+			// We found a non-quoted value.
+			var strMatchedValue = arrMatches[ 3 ];
+		}
+
+		// Now that we have our value string, let's add
+		// it to the data array.
+		arrData[ arrData.length - 1 ].push( strMatchedValue );
+	}
+
+	// Return the parsed data.
+	return( arrData );
+};
 
 /** @type {string} The Earth Engine API URL. */
 access_tool.App.EE_URL = 'https://earthengine.googleapis.com';
@@ -243,6 +364,9 @@ access_tool.App.MAX_ZOOM = 9;
 /** @type {Object} The default center of the map. */
 access_tool.App.DEFAULT_CENTER = {lng: 5, lat: 50};
 
+/** @type {number} Max search locations to create.
+(server also implements this to prevent abuse). */
+access_tool.App.MAX_SOURCES = 1000;
 
 /**
  * @type {Array} An array of Google Map styles. See:
