@@ -16,6 +16,9 @@ SEARCH_MAX_TARGETS = 100
 ACCESS_BAND = "XXXX" # TODO check the band name created by cumulativeCost function
 FRICTION_SURFACE = 'users/harrygibson/friction_surface_v47'
 USE_BACKDROP = True
+
+MAX_EXTENT_WSEN = [-90,-60,90,70]
+
 ee.Initialize(config.EE_CREDENTIALS)
 ee.data.setDeadline(URL_FETCH_TIMEOUT)
 socket.setdefaulttimeout(URL_FETCH_TIMEOUT)
@@ -147,10 +150,15 @@ def jsonRegionToRectangle(requestRegion):
     return rect
 
 def computeCostDist(sourcesImage):
+    maxExtent = ee.Geometry.Rectangle(MAX_EXTENT_WSEN)
     frictionSurface = ee.Image(FRICTION_SURFACE)
     searchRadius = max(SEARCH_RADIUS_KM, 1000)
     costDist = ee.Image(
-        frictionSurface.cumulativeCost(sourcesImage, searchRadius*1000)).toInt()
+        frictionSurface
+        .cumulativeCost(sourcesImage, searchRadius*1000)
+        .toInt()
+        #.clip(maxExtent)
+        )
     return costDist
 
 def exportAccessImageToDrive(accessImage):
