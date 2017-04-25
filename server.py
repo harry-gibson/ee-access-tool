@@ -83,12 +83,28 @@ class CostPathHandler(webapp2.RequestHandler):
         # TODO implement post handler for larger requests
         pass
 
+class ImageValueHandler(webapp2.RequestHandler):
+    #value = country_clipped.reduceRegion(ee.Reducer.first(), point, 30).get('elevation');
+    #panel.widgets().set(2, ui.Label('Elevation: ' + value.getInfo()))
+    def get(self):
+        sourcePts = unicode(self.request.get('sources'))
+        eeSourcePts = jsonPtsToFeatureColl(sourcePts)
+        srcImage = paintPointsToImage(eeSourcePts)
+        costImage = computeCostDist(srcImage)
+        requestPts = unicode(self.request.get('querypoints'))
+        eeRequestPts = jsonPtsToFeatureColl(requestPts)
+        eeRequestPt = ee.Geometry.Point(eeRequestPts.first())
+        value = costImage.reduceRegion(ee.Reducer.first(), eeRequestPt, 30).get('cumulative_cost')
+        output = value.getInfo()
+        self.response.out.write(json.dumps(output))
+
 
 # Define the routing from URL paths to request handler types in this file
 # Routing is defined as a WSGIApplication object called access_app, and this
 # object is defined in the app.yaml file so AppEngine knows what to do
 access_app = webapp2.WSGIApplication([
     ('/costpath', CostPathHandler),
+    ('/costvalue', ImageValueHandler),
     ('/', MainHandler)
 ])
 

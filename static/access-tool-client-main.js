@@ -209,6 +209,17 @@ access_tool.App.prototype.clearMarkers = function(){
   this.refreshControls();
 };
 
+access_tool.App.prototype.queryResult = function(e){
+  $.getJSON(
+      '/costvalue',
+      {
+        sources: this.getPointsJson(),
+          querypoints: {
+            lat: e.latLng.lat(),lon: e.latLng.lng()
+          }
+      }
+  )
+};
 access_tool.App.prototype.refreshControls = function(){
   if(this.markers.length > 0){
     $('#btnRun').prop("disabled", false);
