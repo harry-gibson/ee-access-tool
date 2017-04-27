@@ -130,9 +130,10 @@ access_tool.App.prototype.setState = function(statename){
         $('#btnCsv').prop("disabled", false);
 
         // disable download, runner, and reset buttons
-        $('#btnDownload').prop("disabled", true);
+        $('#btnDownload').prop("disabled", true).show();
         $('#btnRun').prop("disabled", true);
         $('#btnClear').prop("disabled", true);
+        $('#urlDownload').html('Awaiting URL').hide();
 
         // disable result querying
         if (this.identifyListener){
@@ -272,6 +273,13 @@ access_tool.App.prototype.runTool = function(){
               this.map.overlayMapTypes.push(mapLayer);
               if (eeLayer.hasOwnProperty('downloadUrl')){
                 this.mapDownloadUrl = eeLayer['downloadUrl'];
+                var urlEl = $("<a></a>");
+                urlEl.attr('href', this.mapDownloadUrl)
+                    .text('Download');
+                $('#urlDownload').html(urlEl);
+              }
+              else {
+                  $('#urlDownload').html('Extent too large!');
               }
             }).bind(this))
         );
@@ -342,14 +350,10 @@ access_tool.App.prototype.getPointsJson = function(){
 }
 
 access_tool.App.prototype.downloadMap = function(){
-    // temporary solution before the page is further developed to have somewhere
-    // to place the link for the user to click
-    // http://stackoverflow.com/a/41716488
-    // Also eventually we will need to use batch.Export in the server and save it to Drive
-  $('<form></form>')
-     .attr('action', this.mapDownloadUrl)
-     .appendTo('body').submit().remove();
-  $('#btnDownload').prop("disabled", true);
+    // Eventually we will need to use batch.Export in the server and save it to Drive
+    // as the image get download url is limited in ability and is deprecated
+    $('#btnDownload').hide();
+    $('#urlDownload').show();
 }
 
 

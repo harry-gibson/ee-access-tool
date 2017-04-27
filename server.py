@@ -74,9 +74,10 @@ class CostPathHandler(webapp2.RequestHandler):
         layers = []
         layers.append({
             'eeMapId': costImageId['mapid'],
-            'eeToken': costImageId['token'],
-            'downloadUrl': costImageDownloadUrl or ""
+            'eeToken': costImageId['token']
         })
+        if (costImageDownloadUrl):
+            layers[0]['downloadUrl'] = costImageDownloadUrl
         self.response.out.write(json.dumps(layers))
 
     def post(self):
@@ -194,13 +195,17 @@ def exportAccessImageToDrive(accessImage):
 
 
 def getImageDownloadUrl(accessImage, exportRegion):
-    return None
-    outIm = ee.Image(accessImage).select("cumulative_cost")
-    # TODO clip as well?
-    path = outIm.getDownloadURL({
-        # nominal 30 arcsecond equivalent scale, from Weiss code
-        'scale': 927.662423820733
-        , 'maxPixels': 400000000
-        , 'region': exportRegion
-    })
-    return path
+    #return None
+    try:
+        outIm = ee.Image(accessImage).select("cumulative_cost")
+        # TODO clip as well?
+        path = outIm.getDownloadURL({
+            # nominal 30 arcsecond equivalent scale, from Weiss code
+            'scale': 927.662423820733
+            , 'maxPixels': 400000000
+            , 'region': exportRegion
+        })
+        return path
+    except:
+        # if the region is too large for the deprecated getDownloadURL function
+        return None

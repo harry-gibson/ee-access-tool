@@ -72,6 +72,9 @@ body,
   line-height: 30px;
   padding-left: 10px;
 }
+#floating-panel #urlDownload{
+    display: none;
+}
 /* Small screens. */
 
 @media (max-width: 900px) {
