@@ -104,6 +104,12 @@ access_tool.App.prototype.createDrawingManager = function(){
   return drawingManager;
 };
 
+/**
+ * Manages the UI to ensure that the displayed accessibility map (if any) and markers
+ * remain consistent. The application states can be "blank", "toolReady", "toolRunning",
+ * or "resultReady".
+ * @param statename
+ */
 access_tool.App.prototype.setState = function(statename){
     if (statename === 'blank'){
         // clear result image
@@ -119,7 +125,6 @@ access_tool.App.prototype.setState = function(statename){
         }
         this.queryMarkers = [];
 
-
         // enable drawing manager and file chooser
         this.drawingManager.setMap(this.map);
         $('#btnCsv').prop("disabled", false);
@@ -129,7 +134,7 @@ access_tool.App.prototype.setState = function(statename){
         $('#btnRun').prop("disabled", true);
         $('#btnClear').prop("disabled", true);
 
-        // and result query
+        // disable result querying
         if (this.identifyListener){
             google.maps.event.removeListener(this.identifyListener);
         }
@@ -157,7 +162,7 @@ access_tool.App.prototype.setState = function(statename){
         // disable drawing
         this.drawingManager.setMap(null);
 
-        // prevent dragging / alteration of all markers
+        // prevent dragging / alteration of all markers when search is initiated
         for (var i = 0; i < this.sourceMarkers.length; i++){
             this.sourceMarkers[i].draggable = false;
         }
@@ -179,18 +184,6 @@ access_tool.App.prototype.setState = function(statename){
     this.currentState = statename;
 }
 
-access_tool.App.prototype.refreshControls = function(){
-  if(this.sourceMarkers.length > 0){
-    $('#btnRun').prop("disabled", false);
-    $('#btnClear').prop("disabled", false);
-  }
-  else {
-    $('#btnRun').prop("disabled", true);
-    $('#btnClear').prop("disabled", true);
-  }
-}
-
-
 /**
  * Event handler for when a marker is added by the drawingmanager, maintains
  * markers in a separate array which we will use to run tool
@@ -201,7 +194,9 @@ access_tool.App.prototype.handleNewMarker = function(marker){
   this.setState('toolReady');
 };
 
-/** Reads a CSV file and loads the lat/long or x/y columns to sourceMarkers on the map
+/** Reads a CSV file and loads the lat/long or x/y columns to sourceMarkers on the map.
+ * We use a different icon to distinguish these from markers that are created interactively
+ * and these ones are not draggable. Zooms / pans the map to encompass the new markers.
 */
 access_tool.App.prototype.createCsvMarkers = function(e){
   var csvFilePath = e.target.files[0];
@@ -287,6 +282,12 @@ access_tool.App.prototype.runTool = function(){
   );
 };
 
+/**
+ * Gets the accessibility value for a given location. As the server-side is stateless,
+ * this means we run the accessibility search again with the same points as before, using
+ * a different endpoint that returns the value at a single location rather than an image/map
+ * @param e
+ */
 access_tool.App.prototype.queryResult = function(e){
   var sourcepointsJSON = this.getPointsJson();
   var querypointsJSON = JSON.stringify([{
@@ -320,10 +321,6 @@ access_tool.App.prototype.queryResult = function(e){
             hrs + "hrs " + mins + "mins");
       }).bind(this))
   )
-};
-
-access_tool.App.showTooltop = function(e){
-
 };
 
 /** Gets a JSON representation of all the current sourceMarkers

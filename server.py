@@ -84,8 +84,12 @@ class CostPathHandler(webapp2.RequestHandler):
         pass
 
 class ImageValueHandler(webapp2.RequestHandler):
-    #value = country_clipped.reduceRegion(ee.Reducer.first(), point, 30).get('elevation');
-    #panel.widgets().set(2, ui.Label('Elevation: ' + value.getInfo()))
+    """Servlet to handle calculating the accessibility value for a single location.
+
+    This entails running the full analysis as for the CostPathHandler but then returning
+    the image value at a given point rather than the image itself. This is really really
+    slow, which may be an inevitable consequence of the EE lazy processing but feels a bit
+    wrong"""
     def get(self):
         sourcePts = unicode(self.request.get('sourcepoints'))
         eeSourcePts = jsonPtsToFeatureColl(sourcePts)
@@ -101,7 +105,7 @@ class ImageValueHandler(webapp2.RequestHandler):
             reducer = ee.Reducer.first(),
             geometry = eeRequestPt,
             bestEffort = True).get('cumulative_cost')
-        output = value.getInfo()
+        output = value.getInfo() # just a number, or null
         self.response.out.write(json.dumps(output))
 
 
