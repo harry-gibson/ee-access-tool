@@ -35,21 +35,24 @@ access_tool.boot = function(eeMapId, eeToken){
  */
 access_tool.App = function(mapLayer) {
     this.map = this.createMap(mapLayer);
-    // we probably don't actually need a drawing manager if we're only using markers
+    // we probably don't actually need a drawing manager if we're only using sourceMarkers
     // could just wire up the map click event instead
     this.drawingManager = this.createDrawingManager();
-    this.drawingManager.setMap(this.map);
-
     google.maps.event.addListener(this.drawingManager, 'markercomplete',
         this.handleNewMarker.bind(this));
+    this.sourceMarkers = [];
+    this.queryMarkers = [];
+    this.setState('blank');
+
     $('#btnRun').click(this.runTool.bind(this));
-    $('#btnClear').click(this.clearMarkers.bind(this));
+    $('#btnClear').click(
+        (function(){this.setState('blank');})
+            .bind(this));
     $('#btnDownload').click(this.downloadMap.bind(this));
     $('#btnCsv').change(this.createCsvMarkers.bind(this));
-    this.markers = [];
+
     this.mapDownloadUrl = "";
-    this.refreshControls();
-    $('#btnDownload').prop("disabled", true);
+
 }
   // make the drawingManager live to start, i.e.
   //this.toggleDrawing(true);
@@ -93,28 +96,112 @@ access_tool.App.prototype.createDrawingManager = function(){
       drawingModes: ['marker']//, 'circle', 'polygon', 'polyline', 'rectangle']
     },
     markerOptions: {
-      icon: 'https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png',
-      draggable: true
+      //icon: 'https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png',
+        icon: '/static/icons/star-3-clicked-source.png',
+        draggable: true
     }
   });
   return drawingManager;
 };
 
-access_tool.App.prototype.toggleDrawing = function(onOrOff){
-  if (onOrOff){
-    this.drawingManager.setMap(map);
-  }
-  else{
-    this.drawingManager.setMap(null);
-  }
-};
+access_tool.App.prototype.setState = function(statename){
+    if (statename === 'blank'){
+        // clear result image
+        this.map.overlayMapTypes.clear();
+        // clear all markers
+        for (var i = 0; i< this.sourceMarkers.length; i++){
+            this.sourceMarkers[i].setMap(null);
+        }
+        this.sourceMarkers = [];
 
+        for (var i = 0; i< this.queryMarkers.length; i++){
+            this.queryMarkers[i].setMap(null);
+        }
+        this.queryMarkers = [];
+
+
+        // enable drawing manager and file chooser
+        this.drawingManager.setMap(this.map);
+        $('#btnCsv').prop("disabled", false);
+
+        // disable download, runner, and reset buttons
+        $('#btnDownload').prop("disabled", true);
+        $('#btnRun').prop("disabled", true);
+        $('#btnClear').prop("disabled", true);
+
+        // and result query
+        if (this.identifyListener){
+            google.maps.event.removeListener(this.identifyListener);
+        }
+        this.identifyListener = null;
+    }
+
+    else if (statename === 'toolReady'){
+        if (this.sourceMarkers.length == 0){
+            // check in case we were called from csv loader but it was unsuccessful
+            return;
+        }
+        // enable tool runner
+        $('#btnRun').prop("disabled", false);
+        // enable reset
+        $('#btnClear').prop("disabled", false);
+    }
+
+    else if (statename === 'toolRunning'){
+        // disable all buttons
+        $('#btnRun').prop("disabled", true);
+        $('#btnClear').prop("disabled", true);
+        $('#btnDownload').prop("disabled", true);
+        $('#btnCsv').prop("disabled", true);
+
+        // disable drawing
+        this.drawingManager.setMap(null);
+
+        // prevent dragging / alteration of all markers
+        for (var i = 0; i < this.sourceMarkers.length; i++){
+            this.sourceMarkers[i].draggable = false;
+        }
+    }
+
+    else if (statename === 'resultReady'){
+        // enable result download and reset buttons
+        $('#btnDownload').prop("disabled", false);
+        $('#btnClear').prop("disabled", false);
+        // enable result query
+        this.identifyListener = google.maps.event.addListener(
+            this.map,
+            "click",
+            (function(e){
+                this.queryResult(e);
+            }).bind(this)
+        );
+    }
+    this.currentState = statename;
+}
+
+access_tool.App.prototype.refreshControls = function(){
+  if(this.sourceMarkers.length > 0){
+    $('#btnRun').prop("disabled", false);
+    $('#btnClear').prop("disabled", false);
+  }
+  else {
+    $('#btnRun').prop("disabled", true);
+    $('#btnClear').prop("disabled", true);
+  }
+}
+
+
+/**
+ * Event handler for when a marker is added by the drawingmanager, maintains
+ * markers in a separate array which we will use to run tool
+ * @param marker
+ */
 access_tool.App.prototype.handleNewMarker = function(marker){
-  this.markers.push(marker);
-  this.refreshControls();
+  this.sourceMarkers.push(marker);
+  this.setState('toolReady');
 };
 
-/** Reads a CSV file and loads the lat/long or x/y columns to markers on the map
+/** Reads a CSV file and loads the lat/long or x/y columns to sourceMarkers on the map
 */
 access_tool.App.prototype.createCsvMarkers = function(e){
   var csvFilePath = e.target.files[0];
@@ -152,16 +239,16 @@ access_tool.App.prototype.createCsvMarkers = function(e){
       var longitude = parseFloat(dataRow[lonFieldIdx]);
       var pt = new google.maps.LatLng(latitude, longitude);
       var newMarker = new google.maps.Marker({
-        position: pt,
-        map: this.map
+          position: pt,
+          icon: '/static/icons/star-3-imported-source.png',
+          map: this.map
       });
-      this.markers.push(newMarker);
+      this.sourceMarkers.push(newMarker);
       fileBounds.extend(pt);
     }
     if(any){
       this.map.fitBounds(fileBounds);
     }
-    this.refreshControls();
   }.bind(this);
   reader.readAsText(csvFilePath);
 }
@@ -172,11 +259,12 @@ access_tool.App.prototype.createCsvMarkers = function(e){
  * endpoint of the server script, passing in the points as a json-encoded string
  */
 access_tool.App.prototype.runTool = function(){
+    this.setState('toolRunning');
   // TODO we will need to use a POST to run more than a few points
   $.getJSON(
       '/costpath',
       {
-          points: this.getPointsJson(),
+          sourcepoints: this.getPointsJson(),
           mapBounds: JSON.stringify(this.map.getBounds())
       },
       ((function (data) {
@@ -192,51 +280,58 @@ access_tool.App.prototype.runTool = function(){
               }
             }).bind(this))
         );
+        this.setState('resultReady');
         // don't yet have anywhere to put the download link so disable for now
         //$('#btnDownload').prop("disabled", false);
       }).bind(this))
   );
-  $('#btnRun').prop("disabled", true);
-  $('#btnClear').prop("disabled", true);
-  $('#btnDownload').prop("disabled", true);
-};
-
-access_tool.App.prototype.clearMarkers = function(){
-  for (var i = 0; i< this.markers.length; i++){
-    this.markers[i].setMap(null);
-  }
-  this.markers = [];
-  this.refreshControls();
 };
 
 access_tool.App.prototype.queryResult = function(e){
+  var sourcepointsJSON = this.getPointsJson();
+  var querypointsJSON = JSON.stringify([{
+    lat: e.latLng.lat(),
+    lng: e.latLng.lng()
+  }]);
+  var newMarker = new google.maps.Marker({
+      position: e.latLng,
+      icon: '/static/icons/information-query-result.png',
+      map: this.map
+  });
+  var infoWindow = new google.maps.InfoWindow({
+      content: "Retrieving value, please wait..."
+  });
+  newMarker.addListener('click', function(){
+      infoWindow.open(newMarker.get('map'), newMarker);
+  });
+  infoWindow.open(newMarker.get('map'), newMarker);
+  this.queryMarkers.push(newMarker);
   $.getJSON(
       '/costvalue',
       {
-        sources: this.getPointsJson(),
-          querypoints: {
-            lat: e.latLng.lat(),lon: e.latLng.lng()
-          }
-      }
+          sourcepoints: sourcepointsJSON,
+          querypoints: querypointsJSON
+      },
+      ((function(data){
+          var totalMins = data / 10.0;
+          var hrs = Math.floor(totalMins / 60.0);
+          var mins = Math.round(totalMins - 60.0*hrs , 1);
+          infoWindow.setContent("Estimated time to nearest source marker is "+
+            hrs + "hrs " + mins + "mins");
+      }).bind(this))
   )
 };
-access_tool.App.prototype.refreshControls = function(){
-  if(this.markers.length > 0){
-    $('#btnRun').prop("disabled", false);
-    $('#btnClear').prop("disabled", false);
-  }
-  else {
-    $('#btnRun').prop("disabled", true);
-    $('#btnClear').prop("disabled", true);
-  }
-}
 
-/** Gets a JSON representation of all the current markers
+access_tool.App.showTooltop = function(e){
+
+};
+
+/** Gets a JSON representation of all the current sourceMarkers
 */
 access_tool.App.prototype.getPointsJson = function(){
   var jsonArr = [];
-  for (var i = 0; i < this.markers.length; i++){
-    var marker = this.markers[i];
+  for (var i = 0; i < this.sourceMarkers.length; i++){
+    var marker = this.sourceMarkers[i];
     var markerPos = marker.getPosition();
     if (markerPos.lat() && markerPos.lng()){
       var pos = markerPos.toJSON();

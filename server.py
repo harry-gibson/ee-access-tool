@@ -63,7 +63,7 @@ class CostPathHandler(webapp2.RequestHandler):
     to the map, along with the downloadurl for it"""
 
     def get(self):
-        requestPts = unicode(self.request.get('points'))
+        requestPts = unicode(self.request.get('sourcepoints'))
         eeFcPts = jsonPtsToFeatureColl(requestPts)
         requestRegion = unicode(self.request.get('mapBounds'))
         eeRectRegion = jsonRegionToRectangle(requestRegion)
@@ -87,14 +87,20 @@ class ImageValueHandler(webapp2.RequestHandler):
     #value = country_clipped.reduceRegion(ee.Reducer.first(), point, 30).get('elevation');
     #panel.widgets().set(2, ui.Label('Elevation: ' + value.getInfo()))
     def get(self):
-        sourcePts = unicode(self.request.get('sources'))
+        sourcePts = unicode(self.request.get('sourcepoints'))
         eeSourcePts = jsonPtsToFeatureColl(sourcePts)
         srcImage = paintPointsToImage(eeSourcePts)
         costImage = computeCostDist(srcImage)
         requestPts = unicode(self.request.get('querypoints'))
-        eeRequestPts = jsonPtsToFeatureColl(requestPts)
-        eeRequestPt = ee.Geometry.Point(eeRequestPts.first())
-        value = costImage.reduceRegion(ee.Reducer.first(), eeRequestPt, 30).get('cumulative_cost')
+        requestPtsObj = json.loads(requestPts)
+        requestPt = requestPtsObj[0]
+        #eeRequestPts = jsonPtsToFeatureColl(requestPts)
+        #eeRequestPt = eeRequestPts.first() #ee.Geometry.Point(eeRequestPts.first())
+        eeRequestPt = ee.Geometry.Point(requestPt['lng'], requestPt['lat'])
+        value = costImage.reduceRegion(
+            reducer = ee.Reducer.first(),
+            geometry = eeRequestPt,
+            bestEffort = True).get('cumulative_cost')
         output = value.getInfo()
         self.response.out.write(json.dumps(output))
 
