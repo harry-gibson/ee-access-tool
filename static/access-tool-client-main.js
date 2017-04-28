@@ -198,8 +198,13 @@ access_tool.App.prototype.handleNewMarker = function(marker){
 /** Reads a CSV file and loads the lat/long or x/y columns to sourceMarkers on the map.
  * We use a different icon to distinguish these from markers that are created interactively
  * and these ones are not draggable. Zooms / pans the map to encompass the new markers.
+ * We could alternatively parse the input file server side which would allow a greater range
+ * of input types but, whatever
 */
 access_tool.App.prototype.createCsvMarkers = function(e){
+    // https://developers.google.com/kml/articles/csvtokml
+    // http://sideapps.com/code-tips-and-tricks/add-markers-to-google-map-from-csv/
+
   var csvFilePath = e.target.files[0];
   var reader = new FileReader();
   reader.onload = function(e){
@@ -244,6 +249,7 @@ access_tool.App.prototype.createCsvMarkers = function(e){
     }
     if(any){
       this.map.fitBounds(fileBounds);
+      this.setState('toolReady');
     }
   }.bind(this);
   reader.readAsText(csvFilePath);
@@ -322,7 +328,7 @@ access_tool.App.prototype.queryResult = function(e){
           querypoints: querypointsJSON
       },
       ((function(data){
-          var totalMins = data / 10.0;
+          var totalMins = data;
           var hrs = Math.floor(totalMins / 60.0);
           var mins = Math.round(totalMins - 60.0*hrs , 1);
           infoWindow.setContent("Estimated time to nearest source marker is "+
@@ -358,8 +364,6 @@ access_tool.App.prototype.downloadMap = function(){
 
 
 // https://developers.google.com/maps/documentation/javascript/datalayer
-// https://developers.google.com/kml/articles/csvtokml
-// http://sideapps.com/code-tips-and-tricks/add-markers-to-google-map-from-csv/
 
 
 
