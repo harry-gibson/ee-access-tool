@@ -1,10 +1,16 @@
 import json
 import lib.ee as ee
+import lib.drive as drive
 import webapp2
 import jinja2
 import config
 import socket
-from google.appengine.api import urlfetch, users
+import logging
+import random
+import time
+import string
+from google.appengine.api import urlfetch, users, taskqueue, channel
+import lib.oauth2client.appengine
 import os
 ###############################################################################
 #                             Setup                                           #
@@ -18,6 +24,34 @@ FRICTION_SURFACE = 'users/harrygibson/friction_surface_v47'
 USE_BACKDROP = True
 
 MAX_EXTENT_WSEN = [-90,-60,90,70]
+
+############################## EXPORT PARAMETERS ##############################
+# The resolution of the exported images (meters per pixel).
+EXPORT_RESOLUTION = 927.662423820733
+# The maximum number of pixels in an exported image.
+EXPORT_MAX_PIXELS = 1e10 # 400000000
+# The frequency to poll for export EE task completion (seconds).
+TASK_POLL_FREQUENCY = 10
+
+############################## DRIVE LOGIN ####################################
+# Login for the app service account's drive space: the image gets exported to here
+# in the first instance
+OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive'
+APP_CREDENTIALS = lib.oauth2client.client.SignedJwtAssertionCredentials(
+    config.EE_ACCOUNT,
+    open(config.EE_PRIVATE_KEY_FILE, 'rb').read(),
+    OAUTH_SCOPE
+)
+# Drive helper authenticated with the service account to give access to the drive
+# space associated with that account
+APP_DRIVE_HELPER = drive.DriveHelper(APP_CREDENTIALS)
+
+# This triggers the user's Drive permissions request flow
+OAUTH_DECORATOR = lib.oauth2client.appengine.OAuth2Decorator(
+    client_id=config.OAUTH_CLIENT_ID,
+    client_secret=config.OAUTH_CLIENT_SECRET,
+    scope=OAUTH_SCOPE
+)
 
 ee.Initialize(config.EE_CREDENTIALS)
 ee.data.setDeadline(URL_FETCH_TIMEOUT)
@@ -33,6 +67,40 @@ JINJA2_ENVIRONMENT = jinja2.Environment(
 ###############################################################################
 #                             Web request handlers.                           #
 ###############################################################################
+
+class DataHandler(webapp2.RequestHandler):
+    """Base class for servlets to respond to queries.
+
+    Taken from EE export-to-drive template but also just as applicable to the
+    trendy-lights derived code for the cost path map"""
+    def get(self):
+        self.Handle(self.DoGet)
+
+    def post(self):
+        self.Handle(self.DoPost)
+
+    def DoGet(self):
+        """Processes a GET request and returns a JSON-encodable result."""
+        raise NotImplementedError()
+
+    def DoPost(self):
+        """Processes a POST request and returns a JSON-encodable result."""
+        raise NotImplementedError()
+
+    @OAUTH_DECORATOR.oauth_required
+    def Handle(self, handle_function):
+        """Responds with the result of the handle_function or errors, if any."""
+        # Note: The fetch timeout is thread-local so must be set separately
+        # for each incoming request.
+        # TODO maybe move the oauth_required decorator to only the export handler
+        urlfetch.set_default_fetch_deadline(URL_FETCH_TIMEOUT)
+        try:
+            response = handle_function()
+        except Exception as e:  # pylint: disable=broad-except
+            response = {'error': str(e)}
+        if response:
+            self.response.headers['Content-Type'] = 'application/json'
+            self.response.out.write(json.dumps(response))
 
 class MainHandler(webapp2.RequestHandler):
     """Servlet to load the main Accessibility Tool web page
@@ -110,13 +178,163 @@ class ImageValueHandler(webapp2.RequestHandler):
         self.response.out.write(json.dumps(output))
 
 
+class ExportHandler(DataHandler):
+    """A servlet to handle requests for image exports
+
+    Adapted from the EE export-to-drive sample"""
+    def DoPost(self):
+        taskqueue.add(url='/exportrunner', params={
+            'filename': self.request.get('filename'),
+            'client_id': self.request.get('client_id'),
+            'email': users.get_current_user().email(),
+            'user_id': users.get_current_user().user_id(),
+            'region': self.request.get('region')
+        })
+
+class ExportRunnerHandler(webapp2.RequestHandler):
+    """A servlet for handling async export task requests
+
+    Adapted from the EE export-to-drive sample"""
+    def post(self):
+        """Exports an image for the year and region, gives it to the user.
+
+        This is called by our trusted export handler and runs as a separate
+        process.
+
+        HTTP Parameters:
+          email: The email address of the user who initiated this task.
+          filename: The final filename of the file to create in the user's Drive.
+          client_id: The ID of the client (for the Channel API).
+          task: The pickled task to poll.
+          temp_file_prefix: The prefix of the temp file in the service account's
+              Drive.
+          user_id: The ID of the user who initiated this task.
+        """
+        region = self.request.get('region')
+        filename = self.request.get('filename')
+        client_id = self.request.get('client_id')
+        email = self.request.get('email')
+        user_id = self.request.get('user_id')
+
+        # Get the image to export, i.e. run the cost mapping with the points
+        sourcePts = unicode(self.request.get('sourcepoints'))
+        eeSourcePts = jsonPtsToFeatureColl(sourcePts)
+        srcImage = paintPointsToImage(eeSourcePts)
+        costImage = computeCostDist(srcImage)
+
+        #image = GetExportableImage(_GetImage(), region)
+
+        # Use a unique prefix to identify the exported file.
+        temp_file_prefix = self._GetUniqueString()
+
+        # Create and start the task.
+        task = ee.batch.Export.image(
+            image=costImage,
+            description='Earth Engine Demo Export',
+            config={
+                'driveFileNamePrefix': temp_file_prefix,
+                'maxPixels': EXPORT_MAX_PIXELS,
+                'scale': EXPORT_RESOLUTION,
+            })
+        task.start()
+        logging.info('Started EE task (id: %s).', task.id)
+
+        # Wait for the task to complete (taskqueue auto times out after 10 mins).
+        while task.active():
+            logging.info('Polling for task (id: %s).', task.id)
+            time.sleep(TASK_POLL_FREQUENCY)
+
+        def _SendMessage(message):
+            logging.info('Sent to client: ' + json.dumps(message))
+            self._SendMessageToClient(client_id, filename, message)
+
+        # Make a copy (or copies) in the user's Drive if the task succeeded.
+        state = task.status()['state']
+        if state == ee.batch.Task.State.COMPLETED:
+            logging.info('Task succeeded (id: %s).', task.id)
+            try:
+                link = self._GiveFilesToUser(temp_file_prefix, email, user_id, filename)
+                # Notify the user's browser that the export is complete.
+                _SendMessage({'link': link})
+            except Exception as e:  # pylint: disable=broad-except
+                _SendMessage({'error': 'Failed to give file to user: ' + str(e)})
+        else:
+            _SendMessage({'error': 'Task failed (id: %s).' % task.id})
+
+    def _GetUniqueString(self):
+        """Returns a likely-to-be unique string."""
+        random_str = ''.join(
+            random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
+        date_str = str(int(time.time()))
+        return date_str + random_str
+
+    def _SendMessageToClient(self, client_id, filename, params):
+        """Sends a message to the client using the Channel API.
+
+        Args:
+          client_id: The ID of the client to message.
+          filename: The name of the exported file the message is about.
+          params: The params to send in the message (as a Dictionary).
+        """
+        # TODO channel API is deprecated and will be removed in Oct2017 so replace this
+        params['filename'] = filename
+        channel.send_message(client_id, json.dumps(params))
+
+    def _GiveFilesToUser(self, temp_file_prefix, email, user_id, filename):
+        """Moves the files with the prefix to the user's Drive folder.
+
+        Copies and then deletes the source files from the app's Drive.
+
+        Args:
+          temp_file_prefix: The prefix of the temp files in the service
+              account's Drive.
+          email: The email address of the user to give the files to.
+          user_id: The ID of the user to give the files to.
+          filename: The name to give the files in the user's Drive.
+
+        Returns:
+          A link to the files in the user's Drive.
+        """
+        files = APP_DRIVE_HELPER.GetExportedFiles(temp_file_prefix)
+
+        # Grant the user write access to the file(s) in the app service
+        # account's Drive.
+        for f in files:
+            APP_DRIVE_HELPER.GrantAccess(f['id'], email)
+
+        # Create a Drive helper to access the user's Google Drive.
+        user_credentials = lib.oauth2client.appengine.StorageByKeyName(
+            lib.oauth2client.appengine.CredentialsModel,
+            user_id, 'credentials').get()
+        user_drive_helper = drive.DriveHelper(user_credentials)
+
+        # Copy the file(s) into the user's Drive.
+        if len(files) == 1:
+            file_id = files[0]['id']
+            copied_file_id = user_drive_helper.CopyFile(file_id, filename)
+            trailer = 'open?id=' + copied_file_id
+        else:
+            trailer = ''
+            for f in files:
+                # The titles of the files include the coordinates separated by a dash.
+                coords = '-'.join(f['title'].split('-')[-2:])
+                user_drive_helper.CopyFile(f['id'], filename + '-' + coords)
+
+        # Delete the file from the service account's Drive.
+        for f in files:
+            APP_DRIVE_HELPER.DeleteFile(f['id'])
+
+        return 'https://drive.google.com/' + trailer
+
 # Define the routing from URL paths to request handler types in this file
 # Routing is defined as a WSGIApplication object called access_app, and this
 # object is defined in the app.yaml file so AppEngine knows what to do
 access_app = webapp2.WSGIApplication([
     ('/costpath', CostPathHandler),
     ('/costvalue', ImageValueHandler),
-    ('/', MainHandler)
+    ('/exportrunner', ExportRunnerHandler),
+    ('/', MainHandler),
+    (OAUTH_DECORATOR.callback_path, OAUTH_DECORATOR.callback_handler()),
 ])
 
 
@@ -201,8 +419,8 @@ def getImageDownloadUrl(accessImage, exportRegion):
         # TODO clip as well?
         path = outIm.getDownloadURL({
             # nominal 30 arcsecond equivalent scale, from Weiss code
-            'scale': 927.662423820733
-            , 'maxPixels': 400000000
+            'scale': EXPORT_RESOLUTION
+            , 'maxPixels': EXPORT_MAX_PIXELS
             , 'region': exportRegion
         })
         return path

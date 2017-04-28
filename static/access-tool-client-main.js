@@ -1,4 +1,4 @@
-
+// http://dev.roadlessforest.eu/map.html
 
 access_tool = {};
 
@@ -10,10 +10,10 @@ var app;
  * Static function to create the access tool "app" when the page has loaded. This will
  * be called from a script in the html file using parameters passed from the python
  * server-side code via the templating engine.
- * @param {string} eeMapId The Earth Engine map ID.
+ * @param {string} eeMapId The Earth Engine map ID to show initially, can be "None".
  * @param {string} eeToken The Earth Engine map token.
 */
-access_tool.boot = function(eeMapId, eeToken){
+access_tool.boot = function(eeMapId, eeToken, channelToken, channelClientId){
   google.load('maps', '3',
       {
         'other_params': 'key=AIzaSyAKG7sWP6OzVg2l5De0pkVNgCwz-DwNxl8&libraries=drawing'
@@ -22,7 +22,7 @@ access_tool.boot = function(eeMapId, eeToken){
 
   google.setOnLoadCallback(function(){
     var mapLayer = access_tool.App.getEeMapLayer(eeMapId, eeToken);
-    app = new access_tool.App(mapLayer);
+    app = new access_tool.App(mapLayer, channelToken, channelClientId);
   });
 
 };
@@ -33,8 +33,11 @@ access_tool.boot = function(eeMapId, eeToken){
  * @param mapLayer
  * @constructor
  */
-access_tool.App = function(mapLayer) {
+access_tool.App = function(mapLayer, channelToken, channelClientId) {
     this.map = this.createMap(mapLayer);
+    this.clientId = channelClientId;
+    this.channel = new goog.appengine.Channel(channelToken);
+
     // we probably don't actually need a drawing manager if we're only using sourceMarkers
     // could just wire up the map click event instead
     this.drawingManager = this.createDrawingManager();
@@ -49,6 +52,7 @@ access_tool.App = function(mapLayer) {
         (function(){this.setState('blank');})
             .bind(this));
     $('#btnDownload').click(this.downloadMap.bind(this));
+    //http://markusslima.github.io/bootstrap-filestyle/
     $('#btnCsv').change(this.createCsvMarkers.bind(this));
 
     this.mapDownloadUrl = "";
@@ -184,6 +188,62 @@ access_tool.App.prototype.setState = function(statename){
     }
     this.currentState = statename;
 }
+
+/**
+ * Sets the alert with the given name to have the class and content given.
+ * The alert is created if it doesn't already exist.
+ * @param {string} name The name of the alert to set
+ * @param {string} cls The type of the alert for Bootstrap CSS styling
+ * @param {string} line1 The first line of the alert text
+ * @param {string=} opt_line2 The second line of the alert text
+ */
+access_tool.App.prototype.setAlert = function(name, cls, line1, opt_line2){
+    var alert;
+    var existing = this.findAlert(name);
+    if (existing) {
+        // Replace the contents of the existing alert, if any.
+        $('.alert[data-alert-name="' + name + '"] p').remove();
+        alert = existing.removeClass()
+            .addClass('alert alert-dismissable alert-' + cls);
+      }
+    else {
+    // Create a new alert if needed.
+    alert = $('.templates .alert').clone()
+        .addClass('alert-' + cls)
+        .attr('data-alert-name', name);
+    $('.alerts').append(alert);
+  }
+  alert.append($('<p/>').append(line1))
+       .append($('<p/>', {class: 'line2'}).append(opt_line2))
+       .addClass('visible');
+};
+
+/**
+ * Removes the alert with the given name.
+ * @param {string} name The name of the alert to remove.
+ */
+access_tool.App.prototype.removeAlert = function(name) {
+  var cur = this.findAlert(name);
+  if (cur) {
+    cur.removeClass('visible');
+    // Remove the alert once its animation finishes.
+    cur.on('transitionend', function() {
+      if (!cur.hasClass('visible')) {
+        cur.remove();
+      }
+    });
+  }
+};
+/**
+ * Finds the alert with the given name, if any.
+ * @param {string} name The name of the alert to find.
+ * @return {Object} The jQuery DOM wrapper for the alert with the given name.
+ */
+access_tool.App.prototype.findAlert = function(name) {
+  var existing = $('.alert[data-alert-name="' + name + '"]');
+  return existing.length ? existing : undefined;
+};
+
 
 /**
  * Event handler for when a marker is added by the drawingmanager, maintains
@@ -361,7 +421,30 @@ access_tool.App.prototype.downloadMap = function(){
     $('#btnDownload').hide();
     $('#urlDownload').show();
 }
-
+access_tool.App.prototype.exportMap = function(){
+    var filename = this.getFilename();
+    var params = {};
+    params.filename = filename;
+    params.region = JSON.stringify(this.map.getBounds());
+    // TODO remove the client / channel stuff
+    params.client_id = this.clientId;
+    this.setAlert('export-' + filename, 'info',
+        'Export of "' + filename + '" in progress.');
+    access_tool.App.handleRequest(
+        $.post('/export', params), null,
+        this.setAlert.bind(
+            this, 'export-' + filename, 'danger', 'Export failed.')
+    );
+};
+access_tool.App.prototype.getFilename = function(){
+    //var userProvidedFilename = $('.filename').val();
+    //if (userProvidedFilename) {
+    if (false){
+        return userProvidedFilename;
+    } else {
+        return 'Accessibility_Export' + (new Date()).toISOString().replace(/[^0-9]/g, '');
+    }
+};
 
 // https://developers.google.com/maps/documentation/javascript/datalayer
 
