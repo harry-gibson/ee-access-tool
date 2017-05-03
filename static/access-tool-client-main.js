@@ -18,7 +18,7 @@ access_tool.boot = function(eeMapId, eeToken, channelToken, channelClientId){
       {
         'other_params': 'key=AIzaSyAKG7sWP6OzVg2l5De0pkVNgCwz-DwNxl8&libraries=drawing'
       });
-  google.load('jquery', '1');
+  //google.load('jquery', '1');
 
   google.setOnLoadCallback(function(){
     var mapLayer = access_tool.App.getEeMapLayer(eeMapId, eeToken);
@@ -55,9 +55,13 @@ access_tool.App = function(mapLayer, channelToken, channelClientId) {
             .bind(this));
     $('.tool-controls .export').click(this.exportMap.bind(this));
     //http://markusslima.github.io/bootstrap-filestyle/
+    //https://www.abeautifulsite.net/whipping-file-inputs-into-shape-with-bootstrap-3
     $('.tool-controls .loadcsv').change(this.createCsvMarkers.bind(this));
 
     this.mapDownloadUrl = "";
+
+    // todo add modal info
+    //http://www.bootply.com/106707
 };
 
 

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <title>Accessibility Mapper</title>
     <meta charset="utf-8">
@@ -13,7 +13,6 @@
           rel='stylesheet' type='text/css'>
 
         <!-- Custom CSS styles for our application. -->
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
 
@@ -27,6 +26,9 @@
 
     <!-- Accessibility Tool javascript. -->
     <script src="/static/access-tool-client-main.js"></script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
 
   </head>
   <body>
@@ -71,7 +73,9 @@
                         <button class="clear btn btn-default btn-xs" disabled>Clear Map</button>
                     </div>
                     <div class="input-block loadcontrols">
-                        <button class="loadcsv btn btn-default btn-xs">Load CSV</button>
+                        <button class="loadcsv btn btn-default btn-xs btn-file">
+                            Load CSV<input type="file" class="loadcsv btn-file">
+                        </button>
                     </div>
                     <div class="input-block">
                         <span class="input-block-label">Filename:</span>
