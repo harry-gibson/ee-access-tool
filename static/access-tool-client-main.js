@@ -47,19 +47,19 @@ access_tool.App = function(mapLayer, channelToken, channelClientId) {
     this.queryMarkers = [];
     this.setState('blank');
 
-    $('#btnRun').click(this.runTool.bind(this));
-    $('#btnClear').click(
-        (function(){this.setState('blank');})
+    $('.tool-controls .run').click(this.runTool.bind(this));
+    $('.tool-controls .clear').click(
+        (function () {
+            this.setState('blank');
+        })
             .bind(this));
-    $('#btnDownload').click(this.downloadMap.bind(this));
+    $('.tool-controls .export').click(this.exportMap.bind(this));
     //http://markusslima.github.io/bootstrap-filestyle/
-    $('#btnCsv').change(this.createCsvMarkers.bind(this));
+    $('.tool-controls .loadcsv').change(this.createCsvMarkers.bind(this));
 
     this.mapDownloadUrl = "";
+};
 
-}
-  // make the drawingManager live to start, i.e.
-  //this.toggleDrawing(true);
 
 ///////////////////////////////////////////////////////////////////////////////
 //                  "Instance" level helpers and constants.                  //
@@ -70,7 +70,7 @@ access_tool.App = function(mapLayer, channelToken, channelClientId) {
  * map rendered, which would normally be an Earth Engine image (created as a
  * google maps overlay using the getEeMapLayer function).
  * The map is anchored to the DOM element with the CSS class 'map'.
- * @param {google.maps.ImageMapType} mapType The map type to include on the map.
+ * @param {google.maps.ImageMapType} mapType The map type to include on the map, can be null
  * @return {google.maps.Map} A map instance with the map type rendered.
  */
 access_tool.App.prototype.createMap = function(mapLayer){
@@ -78,9 +78,9 @@ access_tool.App.prototype.createMap = function(mapLayer){
       center: access_tool.App.DEFAULT_CENTER,
       zoom: access_tool.App.DEFAULT_ZOOM,
       maxZoom: access_tool.App.MAX_ZOOM,
-      mapTypeId: 'roadmap',
-      //disableDefaultUI: true, // not using, to allow satellite view
-      // streetViewControl: false,
+      mapTypeId: 'roadmap'
+      //,disableDefaultUI: true, // not using, to allow satellite view
+      // streetViewControl: false
   };
   var mapElement = $('.map').get(0);
   var map = new google.maps.Map(mapElement, mapOptions);
@@ -131,13 +131,13 @@ access_tool.App.prototype.setState = function(statename){
 
         // enable drawing manager and file chooser
         this.drawingManager.setMap(this.map);
-        $('#btnCsv').prop("disabled", false);
+        $('.tool-controls .loadcsv').prop("disabled", false);
 
         // disable download, runner, and reset buttons
-        $('#btnDownload').prop("disabled", true).show();
-        $('#btnRun').prop("disabled", true);
-        $('#btnClear').prop("disabled", true);
-        $('#urlDownload').html('Awaiting URL').hide();
+        $('.tool-controls .export').prop("disabled", true).show();
+        $('.tool-controls .run').prop("disabled", true);
+        $('.tool-controls .clear').prop("disabled", true);
+        //$('#urlDownload').html('Awaiting URL').hide();
 
         // disable result querying
         if (this.identifyListener){
@@ -152,17 +152,17 @@ access_tool.App.prototype.setState = function(statename){
             return;
         }
         // enable tool runner
-        $('#btnRun').prop("disabled", false);
+        $('.tool-controls .run').prop("disabled", false);
         // enable reset
-        $('#btnClear').prop("disabled", false);
+        $('.tool-controls .clear').prop("disabled", false);
     }
 
     else if (statename === 'toolRunning'){
         // disable all buttons
-        $('#btnRun').prop("disabled", true);
-        $('#btnClear').prop("disabled", true);
-        $('#btnDownload').prop("disabled", true);
-        $('#btnCsv').prop("disabled", true);
+        $('.tool-controls .run').prop("disabled", true);
+        $('.tool-controls .clear').prop("disabled", true);
+        $('.tool-controls .export').prop("disabled", true);
+        $('.tool-controls .loadcsv').prop("disabled", true);
 
         // disable drawing
         this.drawingManager.setMap(null);
@@ -175,8 +175,8 @@ access_tool.App.prototype.setState = function(statename){
 
     else if (statename === 'resultReady'){
         // enable result download and reset buttons
-        $('#btnDownload').prop("disabled", false);
-        $('#btnClear').prop("disabled", false);
+        $('.tool-controls .export').prop("disabled", false);
+        $('.tool-controls .clear').prop("disabled", false);
         // enable result query
         this.identifyListener = google.maps.event.addListener(
             this.map,

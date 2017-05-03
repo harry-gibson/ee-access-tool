@@ -6,7 +6,7 @@
 
 /* Shared across all screen sizes. */
 
-.overall h1 {
+.access-app h1 {
   font-family: 'Roboto Condensed', sans-serif;
   position: absolute;
   z-index: 1;
@@ -17,48 +17,33 @@
 
 html,
 body,
-.overall,
-.overall .map {
+.access-app,
+.access-app .map {
   height: 100%;
   margin: 0px;
   padding: 0px;
   overflow: hidden;
 }
 
-.overall .panel {
-  display: none;
-  position: absolute;
-  z-index: 1;
-  background-color: white;
-  box-shadow: 0px 0px 20px black;
-  font-family: 'Roboto', sans-serif;
-  padding: 10px;
-  box-sizing: border-box;
+body,
+input,
+textarea,
+select,
+button,
+keygen,
+isindex {
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 14px;
 }
 
-.overall .panel h2 {
-  margin: 0px;
-  padding-bottom: 10px;
+/* todo move to sepearate by screen size*/
+.access-app .ui { /* todo take from floatingpanel*/
+    position: absolute;
+    top: 25%; /*20px;*/
+    left: 10px; /*90px;*/
+    /*width: 470px;*/
+    z-index: 1;
 }
-
-.overall .panel .details {
-  overflow: hidden;
-  max-height: 500px;
-}
-
-.overall .panel .error {
-  display: none;
-}
-
-.overall .powered-by-ee {
-  position: absolute;
-  z-index: 1;
-  bottom: 10px;
-  left: 50%;
-  margin-left: -150px;
-  width: 300px;
-}
-
 #floating-panel {
   position: absolute;
   top: 25%;
@@ -72,65 +57,158 @@ body,
   line-height: 30px;
   padding-left: 10px;
 }
+.access-app .panel {
+    border-radius: 2px;
+    background-color: white;
+    padding: 15px;
+    box-shadow: 0px 0px 20px black;
+    overflow: auto;
+    margin-bottom: 0;
+}
+
+.access-app header{
+  padding-bottom: 10px;
+}
+.access-app .instructions{
+    margin: 0;
+}
+.access-app .intro {
+    margin: 0;
+}
+.access-app .ui h2 {
+    margin-top: 0;
+    margin-bottom: 0;
+    display: block;
+}
+.access-app .tool-controls {
+    display: flex;
+    flex-flow: row nowrap;
+    align-items: flex-end;
+}
+.access-app .inputs{
+    flex-grow: 8;
+}
+.access-app .inputs,
+.access-app .btn.export{
+    display: inline-block;
+}
+.access-app .input-block {
+    display: block;
+    margin-top: 7px;
+}
+.access-app .input-block.region{
+    height: 22px;
+}
+.access-app .input-block-label{
+    font-weight: bold;
+    display: inline-block;
+    width: 65px;
+}
+.access-app .filename{
+    width: 80%;
+    display: inline;
+}
+.access-app .access-app{
+    flex-grow: 1;
+}
+
+.access-app .alerts .alert {
+      margin-top: 8px;
+      margin-bottom: 0;
+  }
+
+    .access-app .alerts .alert.visible {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 2s linear;
+}
+
+.access-app .alerts .alert {
+  visibility: hidden;
+  opacity: 0;
+  transition: visibility 0s 2s, opacity 2s linear;
+}
+
+.access-app .alerts .alert .line2 {
+  font-style: italic;
+}
+
+.access-app .alerts .multifile {
+  padding-left: 1ex;
+}
+
+/* continue here line 67 of demo css*/
+.access-app .powered-by-ee {
+  position: absolute;
+  z-index: 1;
+  bottom: 10px;
+  left: 50%;
+  margin-left: -150px;
+  width: 300px;
+}
+
+
 #floating-panel #urlDownload{
     display: none;
 }
 /* Small screens. */
 
 @media (max-width: 900px) {
-  .overall h1 {
+  .access-app h1 {
     top: 22px;
     font-size: 37px;
     left: 30px;
   }
 
-  .overall .panel {
+  .access-app .panel {
     width: 100%;
     bottom: 0px;
     height: 50px;
   }
 
-  .overall .panel .details {
+  .access-app .panel .details {
     visibility: hidden;
     max-height: 400px;
     padding-right: 10px;
   }
 
-  .overall .panel .close {
+  .access-app .panel .close {
     display: none;
   }
 
-  .overall .panel .toggler {
+  .access-app .panel .toggler {
     position: absolute;
     top: 10px;
     right: 10px;
     cursor: pointer;
   }
 
-  .overall .panel.expanded .details  {
+  .access-app .panel.expanded .details  {
     visibility: visible;
   }
 
-  .overall .panel.expanded {
+  .access-app .panel.expanded {
     height: 278px;
   }
 
-  .overall .powered-by-ee {
+  .access-app .powered-by-ee {
     width: 180px;
   }
+
+
 }
 
 /* Large screens. */
 
 @media (min-width: 900px) {
-  .overall h1 {
+  .access-app h1 {
     left: 40px;
     top: 30px;
     font-size: 56px;
     opacity: .98;
   }
 
-  .overall .panel {
+  .access-app .panel {
     width: 400px;
     left: 40px;
     top: 126px;
@@ -139,14 +217,14 @@ body,
     border-radius: 4px;
   }
 
-  .overall .panel .close {
+  .access-app .panel .close {
     position: absolute;
     top: 14px;
     right: 14px;
     cursor: pointer;
   }
 
-  .overall .panel .toggler {
+  .access-app .panel .toggler {
     display: none;
   }
 }

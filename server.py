@@ -11,6 +11,7 @@ import time
 import string
 from google.appengine.api import urlfetch, users, taskqueue, channel
 import lib.oauth2client.appengine
+import lib.oauth2client.client
 import os
 ###############################################################################
 #                             Setup                                           #
@@ -24,6 +25,43 @@ FRICTION_SURFACE = 'users/harrygibson/friction_surface_v47'
 USE_BACKDROP = True
 
 MAX_EXTENT_WSEN = [-90,-60,90,70]
+MAX_SYMBOLISE_VALUE = 2880 # 48 hrs
+# The colours used in the published and static website versions of the accessibility
+# map are as follows. The ramp is nonlinear so we use an SLD template
+ACCESSIBILITY_STYLE = {
+    # colour break values
+    'ramp_template': (
+        '<RasterSymbolizer>'
+        '<ColorMap type="ramp" extended="false" >'
+            '<ColorMapEntry color="#ffffff" quantity="{0}" label="{0:.0f}" />'
+            '<ColorMapEntry color="#d6ffde" quantity="{1}" label="{1:.0f}" />'
+            '<ColorMapEntry color="#b8f5b3" quantity="{2}" label="{2:.0f}" />'
+            '<ColorMapEntry color="#c0f09c" quantity="{3}" label="{3:.0f}" />'
+            '<ColorMapEntry color="#d0eb81" quantity="{4}" label="{4:.0f}" />'
+            '<ColorMapEntry color="#e3da64" quantity="{5}" label="{5:.0f}" />'
+            '<ColorMapEntry color="#dba54d" quantity="{6}" label="{6:.0f}" />'
+            '<ColorMapEntry color="#d16638" quantity="{7}" label="{7:.0f}" />'
+            '<ColorMapEntry color="#ba2d2f" quantity="{8}" label="{8:.0f}" />'
+            '<ColorMapEntry color="#a11f4a" quantity="{9}" label="{9:.0f}" />'
+            '<ColorMapEntry color="#8a1762" quantity="{10}" label="{10:.0f}" />'
+            '<ColorMapEntry color="#730d6f" quantity="{11}" label="{11:.0f}" />'
+            '<ColorMapEntry color="#420759" quantity="{12}" label="{12:.0f}" />'
+            '<ColorMapEntry color="#1d0654" quantity="{13}" label="{13:.0f}" />'
+            '<ColorMapEntry color="#060329" quantity="{14}" label="{14:.0f}" />'
+            '<ColorMapEntry color="#00030f" quantity="{15}" label="{15:.0f}" />'
+        '</ColorMap>'
+        '</RasterSymbolizer>'
+    ),
+    # values of the colour breaks in the original accessibility map, derived by Jen Rozier
+    # We will normalise by whatever max value is appropriate in our interactively-created map
+    'ramp_positions': [
+        #0, 8.571, 17.143, 25.714, 34.286, 42.857, 51.429, 60,
+        0, 25.7, 51.4, 77.1, 102.8, 128.6, 154.3, 180,
+        405, 750, 1095, 1440,
+        11472, 21504, 31536, 41568
+    ],
+
+}
 
 ############################## EXPORT PARAMETERS ##############################
 # The resolution of the exported images (meters per pixel).
@@ -110,16 +148,17 @@ class MainHandler(webapp2.RequestHandler):
     in which case the js code will not create an overlay on top of the googlemap """
 
     def get(self, path=''):
+        client_id = _GetUniqueString()
         template_values = {
             'eeMapId': "None"
             ,'eeToken': "None"
+            , 'channelToken': channel.create_channel(client_id)
+            , 'channelClientId': client_id
         }
         if USE_BACKDROP:
             eeFrictionMapId = GetFrictionMapId()
-            template_values = {
-                'eeMapId': eeFrictionMapId['mapid']
-                ,'eeToken': eeFrictionMapId['token']
-            }
+            template_values['eeMapId'] = eeFrictionMapId['mapid']
+            template_values['eeToken'] = eeFrictionMapId['token']
         template = JINJA2_ENVIRONMENT.get_template('index.html')
         self.response.out.write(template.render(template_values))
 
@@ -137,7 +176,8 @@ class CostPathHandler(webapp2.RequestHandler):
         eeRectRegion = jsonRegionToRectangle(requestRegion)
         srcImage = paintPointsToImage(eeFcPts)
         costImage = computeCostDist(srcImage)
-        costImageId = GetAccessMapId(costImage)
+        #costImageId = GetAccessMapId(costImage)
+        costImageId = GetPrettyMapId(costImage)
         costImageDownloadUrl = getImageDownloadUrl(costImage, eeRectRegion)
         layers = []
         layers.append({
@@ -225,7 +265,7 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         #image = GetExportableImage(_GetImage(), region)
 
         # Use a unique prefix to identify the exported file.
-        temp_file_prefix = self._GetUniqueString()
+        temp_file_prefix = _GetUniqueString()
 
         # Create and start the task.
         task = ee.batch.Export.image(
@@ -261,12 +301,6 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         else:
             _SendMessage({'error': 'Task failed (id: %s).' % task.id})
 
-    def _GetUniqueString(self):
-        """Returns a likely-to-be unique string."""
-        random_str = ''.join(
-            random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-        date_str = str(int(time.time()))
-        return date_str + random_str
 
     def _SendMessageToClient(self, client_id, filename, params):
         """Sends a message to the client using the Channel API.
@@ -341,6 +375,13 @@ access_app = webapp2.WSGIApplication([
 ###############################################################################
 #                              Helper functions                               #
 ###############################################################################
+def _GetUniqueString():
+    """Returns a likely-to-be unique string."""
+    random_str = ''.join(
+        random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
+    date_str = str(int(time.time()))
+    return date_str + random_str
+
 
 def GetFrictionMapId():
     """Returns the MapID for a backdrop map - maybe friction surface? """
@@ -360,10 +401,17 @@ def GetAccessMapId(eeAccessImage):
     accessVisOpts = {
         'min':0,
         'max':1000,
-        'opacity':0.7,
+        'opacity':0.8,
         'palette':"FFFACD,CD8500,8A360F,68228B"
     }
     return eeAccessImage.getMapId(accessVisOpts)
+
+def GetPrettyMapId(eeAccessImage):
+    sldImage = eeAccessImage.sldStyle(getMapPaletteString())
+    try:
+        return sldImage.getMapId({'opacity':0.8})
+    except:
+        print getMapPaletteString()
 
 def paintPointsToImage(featureCollPts):
     # TODO we could set an analysis region by creating a mask from a polygon
@@ -410,6 +458,14 @@ def exportAccessImageToDrive(accessImage):
     # need to bring in user authentication as well to enable this
     # see the EE demo
     pass
+
+def getMapPaletteString():
+    maxOld = max(ACCESSIBILITY_STYLE['ramp_positions'])
+    normFact = float(MAX_SYMBOLISE_VALUE) / maxOld
+    newBreaks = [f * normFact for f in ACCESSIBILITY_STYLE['ramp_positions']]
+    sld_ramp = ACCESSIBILITY_STYLE['ramp_template'].format(*newBreaks)
+    return sld_ramp
+
 
 
 def getImageDownloadUrl(accessImage, exportRegion):

@@ -12,11 +12,18 @@
     <link href='https://fonts.googleapis.com/css?family=Roboto+Condensed'
           rel='stylesheet' type='text/css'>
 
-    <!-- Custom CSS styles for our application. -->
+        <!-- Custom CSS styles for our application. -->
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap-theme.min.css">
+
+
     <link rel="stylesheet" href="/static/style.css">
+    <script src='/_ah/channel/jsapi'></script>
 
     <!-- The Google JavaScript loader tool (for the Maps, Charts APIs). -->
     <script src="https://www.google.com/jsapi"></script>
+
 
     <!-- Accessibility Tool javascript. -->
     <script src="/static/access-tool-client-main.js"></script>
@@ -26,54 +33,66 @@
 
 
   <!-- The DOM of our application. -->
-  <div class="overall">
-
-    <!-- The title of the application. -->
-    <h1>Accessibility Mapper</h1>
-
-    <div id="floating-panel">
+  <div class="access-app">
+      <!-- The title of the application. -->
+      <h1>Accessibility Mapper</h1>
+      <!--<div id="floating-panel">
         <input id="btnRun" type=button value="Run Tool">
         <input id="btnClear" type=button value="Clear Map">
         <input id="btnCsv" type=file value="Load CSV">
         <input id="btnDownload" type=button value="Download Image">
         <span id="urlDownload">Awaiting URL...</span>
-    </div>
+      </div>-->
 
-    <!-- A container which the Maps API will populate with a map. -->
-    <div class="map"></div>
+      <!-- A container which the Maps API will populate with a map. -->
+      <div class="map"></div>
 
-    <!-- The panel to show details about a place. -->
-    <div class="panel">
+      {# The UI wrapper for the control box and notifications. #}
+      <div class="ui">
+          <!-- The panel to show details about a place. -->
+          <div class="panel">
+            <header>
+                <h2>Interactive Accessibility Mapper</h2>
+                <p class="instructions">
+                    Click on the map to add markers or source points, and/or load from a CSV
+                </p>
+            </header>
 
-      <!-- The button to toggle the panel expanded/collapsed. Mobile-only. -->
-      <div class="toggler">toggle</div>
+            <!-- The button to toggle the panel expanded/collapsed. Mobile-only. -->
+            <div class="toggler">toggle</div>
 
-      <!-- The button to close the panel. Desktop-only. -->
-      <div class="close">close</div>
+            <!-- The button to close the panel. Desktop-only. -->
+            <div class="close">close</div>
 
-      <!-- The title of the place for which details are being shown. -->
-      <h2 class="title"></h2>
+            <div class="tool-controls">
+                <div class="inputs">
+                    <div class="input-block maincontrols">
+                        <button class="run btn btn-default btn-xs" disabled>Run Tool</button>
+                        <button class="clear btn btn-default btn-xs" disabled>Clear Map</button>
+                    </div>
+                    <div class="input-block loadcontrols">
+                        <button class="loadcsv btn btn-default btn-xs">Load CSV</button>
+                    </div>
+                    <div class="input-block">
+                        <span class="input-block-label">Filename:</span>
+                        <input type="text" name="filename" class="filename form-control" placeholder="default: Access_Map_Export_<datetime>">
+                    </div>
+                </div>
+                <button class="export btn btn-primary" disabled>Export</button>
+            </div>
 
-      <!-- A scrollable container for details about the polygon. -->
-      <div class="details">
-
-        <!-- A container which the Charts API will populate. -->
-        <div class="chart"></div>
-
-        <!-- The link to the polygon's Wikipedia page. -->
-        <a class="wiki-url">Wikipedia article</a>
-
-        <!-- The element to hold the error message. -->
-        <p class="error"></p>
+        </div>
+          <div class="alerts"></div>
       </div>
-    </div>
+  </div>
 
-    <a href="https://earthengine.google.org">
+
+  <a href="https://earthengine.google.org">
       <img class="powered-by-ee"
            alt="Powered by Google Earth Engine"
            src="/static/google_earthengine_powered_400px.png">
-    </a>
-  </div>
+  </a>
+
 
   <!-- The "Fork me on GitHub" ribbon. -->
   <a href="https://github.com/harry-gibson/ee-access-tool/">
@@ -82,12 +101,20 @@
          src="https://camo.githubusercontent.com/52760788cde945287fbb584134c4cbc2bc36f904/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f77686974655f6666666666662e706e67"
          data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_white_ffffff.png">
   </a>
-
+    <div class="templates">
+        <div class="alert alert-dismissible" role="alert">
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    </div>
   <!-- Boot our JavaScript once the body has loaded. -->
   <script>
     access_tool.boot(
         '{{ eeMapId | safe }}'
         ,'{{ eeToken | safe }}'
+        ,'{{ channelToken }}'
+        ,'{{ channelClientId }}'
         //,'{{ serializedPolygonIds | safe }}'
       );
   </script>
