@@ -1,5 +1,6 @@
 # ee security and build related stuff
 *.pem
+config.py
 lib/
 .idea/
 # Byte-compiled / optimized / DLL files

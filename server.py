@@ -147,6 +147,7 @@ class MainHandler(webapp2.RequestHandler):
     either set to point to a rendered version of the friction surface or to 'None',
     in which case the js code will not create an overlay on top of the googlemap """
 
+    @OAUTH_DECORATOR.oauth_required
     def get(self, path=''):
         client_id = _GetUniqueString()
         template_values = {
@@ -228,13 +229,18 @@ class ExportHandler(DataHandler):
             'client_id': self.request.get('client_id'),
             'email': users.get_current_user().email(),
             'user_id': users.get_current_user().user_id(),
-            'region': self.request.get('region')
+            'region': self.request.get('region'),
+            'sourcepoints': self.request.get('sourcepoints')
         })
 
 class ExportRunnerHandler(webapp2.RequestHandler):
     """A servlet for handling async export task requests
 
-    Adapted from the EE export-to-drive sample"""
+    Adapted from the EE export-to-drive sample. This handler is configured in app.yaml
+    to only be available to admin users, which includes internal appengine requests.
+    Thus, it can't be called externally, only from the ExportHandler handler (in
+    response to a user request to /export)"""
+
     def post(self):
         """Exports an image for the year and region, gives it to the user.
 
@@ -266,6 +272,8 @@ class ExportRunnerHandler(webapp2.RequestHandler):
 
         # Use a unique prefix to identify the exported file.
         temp_file_prefix = _GetUniqueString()
+
+        # todo implement exporting a set region only
 
         # Create and start the task.
         task = ee.batch.Export.image(
@@ -366,7 +374,8 @@ class ExportRunnerHandler(webapp2.RequestHandler):
 access_app = webapp2.WSGIApplication([
     ('/costpath', CostPathHandler),
     ('/costvalue', ImageValueHandler),
-    ('/exportrunner', ExportRunnerHandler),
+    ('/exportrunner', ExportRunnerHandler), # internal use only
+    ('/export', ExportHandler), # user hook to export data
     ('/', MainHandler),
     (OAUTH_DECORATOR.callback_path, OAUTH_DECORATOR.callback_handler()),
 ])

@@ -360,6 +360,43 @@ access_tool.App.prototype.runTool = function(){
   );
 };
 
+access_tool.App.prototype.runToolPost = function(){
+    this.setState('toolRunning');
+    var params = {
+        sourcepoints: this.getPointsJson(),
+        mapBounds: JSON.stringify(this.map.getBounds())
+    };
+    this.setAlert('toolRunning', "info", "Map query in progress");
+    access_tool.App.handleRequest(
+        $.post('/costpath', params),
+        ((function (data) {
+        this.map.overlayMapTypes.clear();
+        data.forEach(
+            ((function(eeLayer, i){
+              var mapId = eeLayer['eeMapId'];
+              var mapToken = eeLayer['eeToken'];
+              var mapLayer = access_tool.App.getEeMapLayer(mapId, mapToken);
+              this.map.overlayMapTypes.push(mapLayer);
+              if (eeLayer.hasOwnProperty('downloadUrl')){
+                this.mapDownloadUrl = eeLayer['downloadUrl'];
+                var urlEl = $("<a></a>");
+                urlEl.attr('href', this.mapDownloadUrl)
+                    .text('Download');
+                $('#urlDownload').html(urlEl);
+              }
+              else {
+                  $('#urlDownload').html('Extent too large!');
+              }
+            }).bind(this))
+        );
+        this.setState('resultReady');
+        this.setAlert('toolRunning', 'success', "Search ok - loading tiles");
+        // don't yet have anywhere to put the download link so disable for now
+        //$('#btnDownload').prop("disabled", false);
+      }).bind(this)),
+        this.setAlert.bind(this, 'toolRunning', 'danger', 'Search failed')
+    );
+}
 /**
  * Gets the accessibility value for a given location. As the server-side is stateless,
  * this means we run the accessibility search again with the same points as before, using
@@ -430,6 +467,7 @@ access_tool.App.prototype.exportMap = function(){
     var params = {};
     params.filename = filename;
     params.region = JSON.stringify(this.map.getBounds());
+    params.sourcepoints = this.getPointsJson();
     // TODO remove the client / channel stuff
     params.client_id = this.clientId;
     this.setAlert('export-' + filename, 'info',
@@ -489,6 +527,28 @@ access_tool.App.getEeMapLayer = function(eeMapId, eeToken) {
   return new google.maps.ImageMapType(eeMapOptions);
 };
 
+/**
+ * Handles the success or failure of an ajax request.
+ * The JQuery getJSON and post methods do not directly provide for a failure callback
+ * @param {Object} request The jqXHR sent, i.e. the return of $.getJSON or $.post etc
+ * @param {function(Object)} onDone The function to call if the request
+ *  succeeds, with the data object as an argument
+ * @param {function(String)} onError The function to call if the request fails, with an
+ *  error message as an argument
+ * @returns {Object} The original request, against which further callbacks can be registered
+ */
+access_tool.App.handleRequest = function(request, onDone, onError){
+    request.done(function(data){
+        if (data && data.error){
+            onError(data.error)
+        } else {
+            if (onDone) {onDone(data);}
+        }
+    }).fail(function(_, textStatus) {
+        onError(textStatus);
+    });
+    return request;
+}
 /**
  * Parses a delimited string (contents of a CSV file) into array of arrays
  * Taken from http://sideapps.com//code-tips-and-tricks/add-markers-to-google-map-from-csv/
@@ -581,6 +641,7 @@ access_tool.App.csvToArray = function(csvStringData, delim){
 	// Return the parsed data.
 	return( arrData );
 };
+
 
 /** @type {string} The Earth Engine API URL. */
 access_tool.App.EE_URL = 'https://earthengine.googleapis.com';

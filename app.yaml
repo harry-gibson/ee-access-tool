@@ -15,9 +15,15 @@ handlers:
   static_dir: static
   application_readable: true
   secure: always
+- url: /exportrunner
+  script: server.access_app
+  secure: always
+  # the exportrunner endpoint can only be called from within the app (users call export)
+  login: admin
 - url: /.*
   script: server.access_app
   secure: always
+  login: required
 
 skip_files:
 - ^(.*/)?#.*#$
