@@ -44,17 +44,29 @@ def jsonPtsToFeatureColl(requestPts):
     featColl = ee.FeatureCollection(coords)
     return featColl
 
-def jsonRegionToRectangle(requestRegion):
+def jsonRegionToJsonRectangle(requestRegion):
     """Converts a region passed from gmaps api to a geojson rectangle
 
-    Bizarrely the ee export function doesn't take an ee.Rectangle object for
+    Bizarrely the ee image download function doesn't take an ee.Rectangle object for
     region but rather demands a client-side geojson string representation of
     a region. (A post on the EE developers list suggested this is not by design
-    and may change)"""
+    and may change). Conversely the export image (to drive etc) function takes ee.Rectangle"""
+    rect = jsonRegionToEERectangle(requestRegion).toGeoJSONString()
+    return rect
+
+def jsonRegionToEERectangle(requestRegion):
     jsonRegion = json.loads(requestRegion)
     rect = ee.Geometry.Rectangle([jsonRegion['west'],jsonRegion['south'],
-                                  jsonRegion['east'],jsonRegion['north']]).toGeoJSONString()
+                                  jsonRegion['east'],jsonRegion['north']])
     return rect
+
+def jsonRegionToArrayCoords(requestRegion):
+    jsonRegion = json.loads(requestRegion)
+    w = jsonRegion['west']
+    e = jsonRegion['east']
+    n = jsonRegion['north']
+    s = jsonRegion['south']
+    return [[w,s], [w,n], [e,n], [e,s]]
 
 def computeCostDist(sourcesImage, clip=False):
     """Runs the cost-distance map to the provided sources on the friction surface"""

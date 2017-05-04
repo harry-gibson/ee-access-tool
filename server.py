@@ -120,7 +120,7 @@ class CostPathHandler(webapp2.RequestHandler):
         requestPts = unicode(self.request.get('sourcepoints'))
         eeFcPts = jsonPtsToFeatureColl(requestPts)
         requestRegion = unicode(self.request.get('mapBounds'))
-        eeRectRegion = jsonRegionToRectangle(requestRegion)
+        eeRectRegion = jsonRegionToJsonRectangle(requestRegion)
         srcImage = paintPointsToImage(eeFcPts)
         costImage = computeCostDist(srcImage)
         #costImageId = GetAccessMapId(costImage)
@@ -163,11 +163,15 @@ class ImageValueHandler(webapp2.RequestHandler):
         output = value.getInfo() # just a number, or null
         self.response.out.write(json.dumps(output))
 
+    def post(self):
+        self.get()
 
 class ExportHandler(DataHandler):
     """A servlet to handle requests for image exports
 
-    Adapted from the EE export-to-drive sample"""
+    Adapted from the EE export-to-drive sample. Submits a task to the default push queue.
+    App engine will then run this task, in the form of submitting a task to the exportrunner
+    URL endpoint - the one which actually runs the export."""
     def DoPost(self):
         taskqueue.add(url='/exportrunner', params={
             'filename': self.request.get('filename'),
@@ -184,7 +188,7 @@ class ExportRunnerHandler(webapp2.RequestHandler):
     Adapted from the EE export-to-drive sample. This handler is configured in app.yaml
     to only be available to admin users, which includes internal appengine requests.
     Thus, it can't be called externally, only from the ExportHandler handler (in
-    response to a user request to /export)"""
+    response to a user request to /export)."""
 
     def post(self):
         """Exports an image for the year and region, gives it to the user.
@@ -201,7 +205,14 @@ class ExportRunnerHandler(webapp2.RequestHandler):
               Drive.
           user_id: The ID of the user who initiated this task.
         """
-        region = self.request.get('region')
+
+        # Note that the response from this is only seen by the task queue service, there
+        # is no path back from here to the client that submitted the request to /export.
+        # That is why we use the channel api to get a message back, and replacing it needs
+        # some thought.
+
+        requestRegion = self.request.get('region')
+        arrRegion = jsonRegionToArrayCoords(requestRegion)
         filename = self.request.get('filename')
         client_id = self.request.get('client_id')
         email = self.request.get('email')
@@ -211,15 +222,15 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         sourcePts = unicode(self.request.get('sourcepoints'))
         eeSourcePts = jsonPtsToFeatureColl(sourcePts)
         srcImage = paintPointsToImage(eeSourcePts)
-        costImage = computeCostDist(srcImage)
-
+        #costImage = computeCostDist(srcImage)
+        costImage = ee.Image(FRICTION_SURFACE)
         #image = GetExportableImage(_GetImage(), region)
 
         # Use a unique prefix to identify the exported file.
         temp_file_prefix = GetUniqueString()
 
         # todo implement exporting a set region only
-
+        #logging.info(eeRectRegion)
         # Create and start the task.
         task = ee.batch.Export.image(
             image=costImage,
@@ -228,6 +239,7 @@ class ExportRunnerHandler(webapp2.RequestHandler):
                 'driveFileNamePrefix': temp_file_prefix,
                 'maxPixels': EXPORT_MAX_PIXELS,
                 'scale': EXPORT_RESOLUTION,
+                'region': arrRegion
             })
         task.start()
         logging.info('Started EE task (id: %s).', task.id)

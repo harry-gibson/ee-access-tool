@@ -1,5 +1,5 @@
 // http://dev.roadlessforest.eu/map.html
-
+// https://www.w3schools.com/bootstrap/
 access_tool = {};
 
 var interactionMode = 0; // 0 = draw, 1 = upload CSV
@@ -187,7 +187,7 @@ access_tool.App.prototype.setState = function(statename){
             this.map,
             "click",
             (function(e){
-                this.queryResult(e);
+                this.queryResultPost(e);
             }).bind(this)
         );
     }
@@ -325,42 +325,6 @@ access_tool.App.prototype.createCsvMarkers = function(e){
  * The process of running the tool is just making a request to the costpath
  * endpoint of the server script, passing in the points as a json-encoded string
  */
-access_tool.App.prototype.runTool = function(){
-    this.setState('toolRunning');
-  // TODO we will need to use a POST to run more than a few points
-  $.getJSON(
-      '/costpath',
-      {
-          sourcepoints: this.getPointsJson(),
-          mapBounds: JSON.stringify(this.map.getBounds())
-      },
-      ((function (data) {
-        this.map.overlayMapTypes.clear();
-        data.forEach(
-            ((function(eeLayer, i){
-              var mapId = eeLayer['eeMapId'];
-              var mapToken = eeLayer['eeToken'];
-              var mapLayer = access_tool.App.getEeMapLayer(mapId, mapToken);
-              this.map.overlayMapTypes.push(mapLayer);
-              if (eeLayer.hasOwnProperty('downloadUrl')){
-                this.mapDownloadUrl = eeLayer['downloadUrl'];
-                var urlEl = $("<a></a>");
-                urlEl.attr('href', this.mapDownloadUrl)
-                    .text('Download');
-                $('#urlDownload').html(urlEl);
-              }
-              else {
-                  $('#urlDownload').html('Extent too large!');
-              }
-            }).bind(this))
-        );
-        this.setState('resultReady');
-        // don't yet have anywhere to put the download link so disable for now
-        //$('#btnDownload').prop("disabled", false);
-      }).bind(this))
-  );
-};
-
 access_tool.App.prototype.runToolPost = function(){
     this.setState('toolRunning');
     var params = {
@@ -398,7 +362,8 @@ access_tool.App.prototype.runToolPost = function(){
       }).bind(this)),
         this.setAlert.bind(this, 'toolRunning', 'danger', 'Search failed')
     );
-}
+};
+
 /**
  * Gets the accessibility value for a given location. As the server-side is stateless,
  * this means we run the accessibility search again with the same points as before, using
@@ -438,6 +403,40 @@ access_tool.App.prototype.queryResult = function(e){
             hrs + "hrs " + mins + "mins");
       }).bind(this))
   )
+};
+access_tool.App.prototype.queryResultPost = function(e){
+  var sourcepointsJSON = this.getPointsJson();
+  var querypointsJSON = JSON.stringify([{
+    lat: e.latLng.lat(),
+    lng: e.latLng.lng()
+  }]);
+  var newMarker = new google.maps.Marker({
+      position: e.latLng,
+      icon: '/static/icons/information-query-result.png',
+      map: this.map
+  });
+  var infoWindow = new google.maps.InfoWindow({
+      content: "Retrieving value, please wait..."
+  });
+  newMarker.addListener('click', function(){
+      infoWindow.open(newMarker.get('map'), newMarker);
+  });
+  infoWindow.open(newMarker.get('map'), newMarker);
+  this.queryMarkers.push(newMarker);
+  var params = {
+      sourcepoints: sourcepointsJSON,
+      querypoints: querypointsJSON
+  };
+  access_tool.App.handleRequest(
+      $.post('/costvalue', params),
+      ((function(data){
+          var totalMins = data; // this service just returns a number, as plaintext
+          var hrs = Math.floor(totalMins / 60.0);
+          var mins = Math.round(totalMins - 60.0*hrs , 1);
+          infoWindow.setContent("Estimated time to nearest source marker is "+
+            hrs + "hrs " + mins + "mins");
+      }).bind(this))
+  );
 };
 
 /** Gets a JSON representation of all the current sourceMarkers
