@@ -136,8 +136,7 @@ class CostPathHandler(webapp2.RequestHandler):
         self.response.out.write(json.dumps(layers))
 
     def post(self):
-        # TODO implement post handler for larger requests
-        pass
+        self.get()
 
 class ImageValueHandler(webapp2.RequestHandler):
     """Servlet to handle calculating the accessibility value for a single location.

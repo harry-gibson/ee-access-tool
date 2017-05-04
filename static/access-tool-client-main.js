@@ -47,7 +47,8 @@ access_tool.App = function(mapLayer, channelToken, channelClientId) {
     this.queryMarkers = [];
     this.setState('blank');
 
-    $('.tool-controls .run').click(this.runTool.bind(this));
+    //$('.tool-controls .run').click(this.runTool.bind(this));
+    $('.tool-controls .run').click(this.runToolPost.bind(this));
     $('.tool-controls .clear').click(
         (function () {
             this.setState('blank');
@@ -371,7 +372,8 @@ access_tool.App.prototype.runToolPost = function(){
         $.post('/costpath', params),
         ((function (data) {
         this.map.overlayMapTypes.clear();
-        data.forEach(
+        var dataParsed = JSON.parse(data);
+        dataParsed.forEach(
             ((function(eeLayer, i){
               var mapId = eeLayer['eeMapId'];
               var mapToken = eeLayer['eeToken'];
@@ -479,9 +481,9 @@ access_tool.App.prototype.exportMap = function(){
     );
 };
 access_tool.App.prototype.getFilename = function(){
-    //var userProvidedFilename = $('.filename').val();
-    //if (userProvidedFilename) {
-    if (false){
+    var userProvidedFilename = $('.filename').val();
+    if (userProvidedFilename) {
+    //if (false){
         return userProvidedFilename;
     } else {
         return 'Accessibility_Export' + (new Date()).toISOString().replace(/[^0-9]/g, '');
