@@ -17,8 +17,8 @@ import os
 #                             Setup                                           #
 ###############################################################################
 URL_FETCH_TIMEOUT = 120
-SEARCH_RADIUS_KM = 1000
-SEARCH_MAX_TARGETS = 100
+SEARCH_RADIUS_KM = 2000
+SEARCH_MAX_TARGETS = 1000
 
 ACCESS_BAND = "XXXX" # TODO check the band name created by cumulativeCost function
 FRICTION_SURFACE = 'users/harrygibson/friction_surface_v47'
@@ -436,7 +436,7 @@ def jsonPtsToFeatureColl(requestPts):
     for items in jsonPts:
         nPts += 1
         if nPts == SEARCH_MAX_TARGETS:
-            # set a last-ditch limit on the number of sources
+            # set a server-side limit on the number of sources in case of client-side shenanigans
             break
         try:
             pt = ee.Geometry.Point(items['lng'],items['lat'])
