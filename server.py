@@ -13,63 +13,9 @@ from google.appengine.api import urlfetch, users, taskqueue, channel
 import lib.oauth2client.appengine
 import lib.oauth2client.client
 import os
-###############################################################################
-#                             Setup                                           #
-###############################################################################
-URL_FETCH_TIMEOUT = 120
-SEARCH_RADIUS_KM = 2000
-SEARCH_MAX_TARGETS = 1000
+# from AccessToolConstants import *
+from AccessToolStaticHelpers import *
 
-ACCESS_BAND = "XXXX" # TODO check the band name created by cumulativeCost function
-FRICTION_SURFACE = 'users/harrygibson/friction_surface_v47'
-USE_BACKDROP = True
-
-MAX_EXTENT_WSEN = [-90,-60,90,70]
-MAX_SYMBOLISE_VALUE = 2880 # 48 hrs
-# The colours used in the published and static website versions of the accessibility
-# map are as follows. The ramp is nonlinear so we use an SLD template
-ACCESSIBILITY_STYLE = {
-    # colour break values
-    'ramp_template': (
-        '<RasterSymbolizer>'
-        '<ColorMap type="ramp" extended="false" >'
-            '<ColorMapEntry color="#ffffff" quantity="{0}" label="{0:.0f}" />'
-            '<ColorMapEntry color="#d6ffde" quantity="{1}" label="{1:.0f}" />'
-            '<ColorMapEntry color="#b8f5b3" quantity="{2}" label="{2:.0f}" />'
-            '<ColorMapEntry color="#c0f09c" quantity="{3}" label="{3:.0f}" />'
-            '<ColorMapEntry color="#d0eb81" quantity="{4}" label="{4:.0f}" />'
-            '<ColorMapEntry color="#e3da64" quantity="{5}" label="{5:.0f}" />'
-            '<ColorMapEntry color="#dba54d" quantity="{6}" label="{6:.0f}" />'
-            '<ColorMapEntry color="#d16638" quantity="{7}" label="{7:.0f}" />'
-            '<ColorMapEntry color="#ba2d2f" quantity="{8}" label="{8:.0f}" />'
-            '<ColorMapEntry color="#a11f4a" quantity="{9}" label="{9:.0f}" />'
-            '<ColorMapEntry color="#8a1762" quantity="{10}" label="{10:.0f}" />'
-            '<ColorMapEntry color="#730d6f" quantity="{11}" label="{11:.0f}" />'
-            '<ColorMapEntry color="#420759" quantity="{12}" label="{12:.0f}" />'
-            '<ColorMapEntry color="#1d0654" quantity="{13}" label="{13:.0f}" />'
-            '<ColorMapEntry color="#060329" quantity="{14}" label="{14:.0f}" />'
-            '<ColorMapEntry color="#00030f" quantity="{15}" label="{15:.0f}" />'
-        '</ColorMap>'
-        '</RasterSymbolizer>'
-    ),
-    # values of the colour breaks in the original accessibility map, derived by Jen Rozier
-    # We will normalise by whatever max value is appropriate in our interactively-created map
-    'ramp_positions': [
-        #0, 8.571, 17.143, 25.714, 34.286, 42.857, 51.429, 60,
-        0, 25.7, 51.4, 77.1, 102.8, 128.6, 154.3, 180,
-        405, 750, 1095, 1440,
-        11472, 21504, 31536, 41568
-    ],
-
-}
-
-############################## EXPORT PARAMETERS ##############################
-# The resolution of the exported images (meters per pixel).
-EXPORT_RESOLUTION = 927.662423820733
-# The maximum number of pixels in an exported image.
-EXPORT_MAX_PIXELS = 1e10 # 400000000
-# The frequency to poll for export EE task completion (seconds).
-TASK_POLL_FREQUENCY = 10
 
 ############################## DRIVE LOGIN ####################################
 # Login for the app service account's drive space: the image gets exported to here
@@ -178,7 +124,7 @@ class CostPathHandler(webapp2.RequestHandler):
         srcImage = paintPointsToImage(eeFcPts)
         costImage = computeCostDist(srcImage)
         #costImageId = GetAccessMapId(costImage)
-        costImageId = GetPrettyMapId(costImage)
+        costImageId = GetAccessMapId_Pretty(costImage)
         costImageDownloadUrl = getImageDownloadUrl(costImage, eeRectRegion)
         layers = []
         layers.append({
@@ -381,114 +327,5 @@ access_app = webapp2.WSGIApplication([
 ])
 
 
-###############################################################################
-#                              Helper functions                               #
-###############################################################################
-def _GetUniqueString():
-    """Returns a likely-to-be unique string."""
-    random_str = ''.join(
-        random.choice(string.ascii_uppercase + string.digits) for _ in range(6))
-    date_str = str(int(time.time()))
-    return date_str + random_str
 
 
-def GetFrictionMapId():
-    """Returns the MapID for a backdrop map - maybe friction surface? """
-    frictionSurface = ee.Image(FRICTION_SURFACE)
-    #Map.addLayer(frictionSurface, {min: 0.0, max: 0.01, palette: "FFFF00,FFA500,800080,4B0082"});
-    frictionVisOpts = {
-            'min': 0.0,
-            'max': 0.01,
-            'palette': "FFFF00,FFA500,800080,4B0082",
-            'opacity': 0.5
-        }
-    return frictionSurface.getMapId(frictionVisOpts)
-    #return None
-
-def GetAccessMapId(eeAccessImage):
-    """Returns the MapID for an image returned by the cost path stuff"""
-    accessVisOpts = {
-        'min':0,
-        'max':1000,
-        'opacity':0.8,
-        'palette':"FFFACD,CD8500,8A360F,68228B"
-    }
-    return eeAccessImage.getMapId(accessVisOpts)
-
-def GetPrettyMapId(eeAccessImage):
-    sldImage = eeAccessImage.sldStyle(getMapPaletteString())
-    try:
-        return sldImage.getMapId({'opacity':0.8})
-    except:
-        print getMapPaletteString()
-
-def paintPointsToImage(featureCollPts):
-    # TODO we could set an analysis region by creating a mask from a polygon
-    blankImage = ee.Image(0.0).byte()
-    sourcesImage = blankImage.paint(featureCollPts, 1)
-    sourcesImage = sourcesImage.updateMask(sourcesImage)
-    return sourcesImage
-
-def jsonPtsToFeatureColl(requestPts):
-    jsonPts = json.loads(requestPts)
-    coords = []
-    nPts = 0
-    for items in jsonPts:
-        nPts += 1
-        if nPts == SEARCH_MAX_TARGETS:
-            # set a server-side limit on the number of sources in case of client-side shenanigans
-            break
-        try:
-            pt = ee.Geometry.Point(items['lng'],items['lat'])
-            coords.append(pt)
-        except:
-            pass
-    featColl = ee.FeatureCollection(coords)
-    return featColl
-def jsonRegionToRectangle(requestRegion):
-    jsonRegion = json.loads(requestRegion)
-    rect = ee.Geometry.Rectangle([jsonRegion['west'],jsonRegion['south'],
-                                  jsonRegion['east'],jsonRegion['north']]).toGeoJSONString()
-    return rect
-
-def computeCostDist(sourcesImage):
-    maxExtent = ee.Geometry.Rectangle(MAX_EXTENT_WSEN)
-    frictionSurface = ee.Image(FRICTION_SURFACE)
-    searchRadius = max(SEARCH_RADIUS_KM, 1000)
-    costDist = ee.Image(
-        frictionSurface
-        .cumulativeCost(sourcesImage, searchRadius*1000)
-        .toInt()
-        #.clip(maxExtent)
-        )
-    return costDist
-
-def exportAccessImageToDrive(accessImage):
-    # need to bring in user authentication as well to enable this
-    # see the EE demo
-    pass
-
-def getMapPaletteString():
-    maxOld = max(ACCESSIBILITY_STYLE['ramp_positions'])
-    normFact = float(MAX_SYMBOLISE_VALUE) / maxOld
-    newBreaks = [f * normFact for f in ACCESSIBILITY_STYLE['ramp_positions']]
-    sld_ramp = ACCESSIBILITY_STYLE['ramp_template'].format(*newBreaks)
-    return sld_ramp
-
-
-
-def getImageDownloadUrl(accessImage, exportRegion):
-    #return None
-    try:
-        outIm = ee.Image(accessImage).select("cumulative_cost")
-        # TODO clip as well?
-        path = outIm.getDownloadURL({
-            # nominal 30 arcsecond equivalent scale, from Weiss code
-            'scale': EXPORT_RESOLUTION
-            , 'maxPixels': EXPORT_MAX_PIXELS
-            , 'region': exportRegion
-        })
-        return path
-    except:
-        # if the region is too large for the deprecated getDownloadURL function
-        return None
