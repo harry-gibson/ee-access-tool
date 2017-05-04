@@ -60,7 +60,7 @@ def computeCostDist(sourcesImage, clip=False):
     """Runs the cost-distance map to the provided sources on the friction surface"""
     maxExtent = ee.Geometry.Rectangle(MAX_EXTENT_WSEN)
     frictionSurface = ee.Image(FRICTION_SURFACE)
-    searchRadius = max(SEARCH_RADIUS_KM, 10000)
+    searchRadius = min(SEARCH_RADIUS_KM, 10000)
     costDist = ee.Image(
         frictionSurface
         .cumulativeCost(sourcesImage, searchRadius*1000)
@@ -134,7 +134,7 @@ def GetAccessMapId_Pretty(eeAccessImage):
 #                              Helper functions                               #
 ###############################################################################
 
-def _GetUniqueString():
+def GetUniqueString():
     """Returns a likely-to-be unique string."""
     random_str = ''.join(
         random.choice(string.ascii_uppercase + string.digits) for _ in range(6))

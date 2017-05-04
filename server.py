@@ -95,7 +95,7 @@ class MainHandler(webapp2.RequestHandler):
 
     @OAUTH_DECORATOR.oauth_required
     def get(self, path=''):
-        client_id = _GetUniqueString()
+        client_id = GetUniqueString()
         template_values = {
             'eeMapId': "None"
             ,'eeToken': "None"
@@ -217,7 +217,7 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         #image = GetExportableImage(_GetImage(), region)
 
         # Use a unique prefix to identify the exported file.
-        temp_file_prefix = _GetUniqueString()
+        temp_file_prefix = GetUniqueString()
 
         # todo implement exporting a set region only
 
