@@ -19,7 +19,7 @@ from AccessToolStaticHelpers import *
 
 ############################## DRIVE LOGIN ####################################
 # Login for the app service account's drive space: the image gets exported to here
-# in the first instance
+# in the first instance then copied to the user's drive
 OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive'
 APP_CREDENTIALS = lib.oauth2client.client.SignedJwtAssertionCredentials(
     config.EE_ACCOUNT,
@@ -30,7 +30,8 @@ APP_CREDENTIALS = lib.oauth2client.client.SignedJwtAssertionCredentials(
 # space associated with that account
 APP_DRIVE_HELPER = drive.DriveHelper(APP_CREDENTIALS)
 
-# This triggers the user's Drive permissions request flow
+# This triggers the user's Drive permissions request flow when used as a
+# decorator on a request handler function
 OAUTH_DECORATOR = lib.oauth2client.appengine.OAuth2Decorator(
     client_id=config.OAUTH_CLIENT_ID,
     client_secret=config.OAUTH_CLIENT_SECRET,
@@ -48,6 +49,8 @@ JINJA2_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
     autoescape=True,
     extensions=['jinja2.ext.autoescape'])
+
+
 ###############################################################################
 #                             Web request handlers.                           #
 ###############################################################################
@@ -222,8 +225,8 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         sourcePts = unicode(self.request.get('sourcepoints'))
         eeSourcePts = jsonPtsToFeatureColl(sourcePts)
         srcImage = paintPointsToImage(eeSourcePts)
-        #costImage = computeCostDist(srcImage)
-        costImage = ee.Image(FRICTION_SURFACE)
+        costImage = computeCostDist(srcImage)
+        #costImage = ee.Image(FRICTION_SURFACE)
         #image = GetExportableImage(_GetImage(), region)
 
         # Use a unique prefix to identify the exported file.
@@ -336,7 +339,3 @@ access_app = webapp2.WSGIApplication([
     ('/', MainHandler),
     (OAUTH_DECORATOR.callback_path, OAUTH_DECORATOR.callback_handler()),
 ])
-
-
-
-
