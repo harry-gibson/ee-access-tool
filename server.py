@@ -113,7 +113,7 @@ class MainHandler(webapp2.RequestHandler):
         self.response.out.write(template.render(template_values))
 
 class CostPathHandler(webapp2.RequestHandler):
-    """Servlet to handle running a cost path map operation on input points.
+    """Servlet to handle running a cost path map operation on input points, producing a map overlay
 
     Parses the request item called 'points' and paints the points onto a new
     ee.Image, runs cost path, and returns the mapid and token to add the result
@@ -125,9 +125,9 @@ class CostPathHandler(webapp2.RequestHandler):
         requestRegion = unicode(self.request.get('mapBounds'))
         eeRectRegion = jsonRegionToJsonRectangle(requestRegion)
         srcImage = paintPointsToImage(eeFcPts)
-        costImage = computeCostDist(srcImage)
-        #costImageId = GetAccessMapId(costImage)
-        costImageId = GetAccessMapId_Pretty(costImage)
+        costImage = computeCostDist(srcImage, computationScale=INTERACTIVE_RESOLUTION)
+        costImageId = GetAccessMapId_Plain(costImage)
+        #costImageId = GetAccessMapId_Pretty(costImage)
         costImageDownloadUrl = getImageDownloadUrl(costImage, eeRectRegion)
         layers = []
         layers.append({
@@ -152,7 +152,7 @@ class ImageValueHandler(webapp2.RequestHandler):
         sourcePts = unicode(self.request.get('sourcepoints'))
         eeSourcePts = jsonPtsToFeatureColl(sourcePts)
         srcImage = paintPointsToImage(eeSourcePts)
-        costImage = computeCostDist(srcImage)
+        costImage = computeCostDist(srcImage, computationScale=INTERACTIVE_RESOLUTION)
         requestPts = unicode(self.request.get('querypoints'))
         requestPtsObj = json.loads(requestPts)
         requestPt = requestPtsObj[0]
@@ -214,6 +214,10 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         # That is why we use the channel api to get a message back, and replacing it needs
         # some thought.
 
+        # At present this works fine if we are exporting a pre-existing asses such as the friction
+        # surface. However for the on-the-fly accessibility map it is catastrophically slow to the
+        # extent that it times out unless you do a really small area.
+
         requestRegion = self.request.get('region')
         arrRegion = jsonRegionToArrayCoords(requestRegion)
         filename = self.request.get('filename')
@@ -241,7 +245,7 @@ class ExportRunnerHandler(webapp2.RequestHandler):
             config={
                 'driveFileNamePrefix': temp_file_prefix,
                 'maxPixels': EXPORT_MAX_PIXELS,
-                'scale': EXPORT_RESOLUTION,
+                'scale': NATIVE_RESOLUTION,
                 'region': arrRegion
             })
         task.start()
