@@ -23,8 +23,21 @@ ACCESS_BAND = "cumulative_cost"
 ###############################################################################
 #                              EXPORT PARAMETERS                              #
 ###############################################################################
+
 # The resolution of the exported images (meters per pixel).
-EXPORT_RESOLUTION = 927.662423820733
+# This corresponds to the native resolution of the pre-baked friction surface.
+# Cost-path maps will only be "correct" when created at this resolution because
+# at coarser scales we are blurring out the prsence of roads, borders, etc.
+NATIVE_RESOLUTION = 927.662423820733
+
+# The calculation scale for interactive mapping / querying to enable it to happen
+# on sub-geological timescales. The results will be approximate.
+INTERACTIVE_RESOLUTION = 2445.9849
+# Note we restrict the interactive map client to max zoom level of 9 which is
+# c. 305m/px at the equator. At this resolution each friction px will therefore be
+# c.3 screen pixels. We'll run calculations 8* coarser than that, i.e result pixels
+# will be ~24 screen pixels across when zoomed in as far as possible.
+
 # The maximum number of pixels in an exported image.
 EXPORT_MAX_PIXELS = 1e10 # 400000000
 # The frequency to poll for export EE task completion (seconds).

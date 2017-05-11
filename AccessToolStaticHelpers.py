@@ -68,16 +68,22 @@ def jsonRegionToArrayCoords(requestRegion):
     s = jsonRegion['south']
     return [[w,s], [w,n], [e,n], [e,s]]
 
-def computeCostDist(sourcesImage, clip=False):
+def computeCostDist(sourcesImage, clip=False, computationScale=NATIVE_RESOLUTION):
     """Runs the cost-distance map to the provided sources on the friction surface"""
     maxExtent = ee.Geometry.Rectangle(MAX_EXTENT_WSEN)
     frictionSurface = ee.Image(FRICTION_SURFACE)
+    if computationScale != NATIVE_RESOLUTION:
+        frictionSurface = frictionSurface.reduceResolution(
+            reducer = ee.Reducer.mode(),
+            maxPixels = int((computationScale / NATIVE_RESOLUTION)**2 + 10)
+        )
     searchRadius = min(SEARCH_RADIUS_KM, 10000)
     costDist = ee.Image(
         frictionSurface
-        .cumulativeCost(sourcesImage, searchRadius*1000)
+        .cumulativeCost(sourcesImage,
+                        searchRadius*1000)
         .toInt()
-        )
+        ).reproject(crs='EPSG:4326', scale=computationScale)
     if (clip):
         return costDist.clip(maxExtent)
     else:
@@ -91,7 +97,7 @@ def getImageDownloadUrl(accessImage, exportRegion):
         # TODO clip as well?
         path = outIm.getDownloadURL({
             # nominal 30 arcsecond equivalent scale, from Weiss code
-            'scale': EXPORT_RESOLUTION
+            'scale': NATIVE_RESOLUTION
             , 'maxPixels': EXPORT_MAX_PIXELS
             , 'region': exportRegion
         })
