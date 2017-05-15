@@ -18,9 +18,12 @@ from AccessToolStaticHelpers import *
 
 
 ############################## DRIVE LOGIN ####################################
+# Both the app and the user logins are to the Drive scope only
+OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive'
+
+
 # Login for the app service account's drive space: the image gets exported to here
 # in the first instance then copied to the user's drive
-OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive'
 APP_CREDENTIALS = lib.oauth2client.client.SignedJwtAssertionCredentials(
     config.EE_ACCOUNT,
     open(config.EE_PRIVATE_KEY_FILE, 'rb').read(),
@@ -28,7 +31,7 @@ APP_CREDENTIALS = lib.oauth2client.client.SignedJwtAssertionCredentials(
 )
 # Drive helper authenticated with the service account to give access to the drive
 # space associated with that account
-APP_DRIVE_HELPER = drive.DriveHelper(APP_CREDENTIALS)
+#APP_DRIVE_HELPER = drive.DriveHelper(APP_CREDENTIALS)
 
 # This triggers the user's Drive permissions request flow when used as a
 # decorator on a request handler function
@@ -96,7 +99,6 @@ class MainHandler(webapp2.RequestHandler):
     either set to point to a rendered version of the friction surface or to 'None',
     in which case the js code will not create an overlay on top of the googlemap """
 
-    @OAUTH_DECORATOR.oauth_required
     def get(self, path=''):
         client_id = GetUniqueString()
         template_values = {
@@ -229,7 +231,7 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         sourcePts = unicode(self.request.get('sourcepoints'))
         eeSourcePts = jsonPtsToFeatureColl(sourcePts)
         srcImage = paintPointsToImage(eeSourcePts)
-        costImage = computeCostDist(srcImage)
+        costImage = computeCostDist(srcImage, computationScale=NATIVE_RESOLUTION)
         #costImage = ee.Image(FRICTION_SURFACE)
         #image = GetExportableImage(_GetImage(), region)
 
@@ -301,6 +303,7 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         Returns:
           A link to the files in the user's Drive.
         """
+        APP_DRIVE_HELPER = drive.DriveHelper(APP_CREDENTIALS)
         files = APP_DRIVE_HELPER.GetExportedFiles(temp_file_prefix)
 
         # Grant the user write access to the file(s) in the app service

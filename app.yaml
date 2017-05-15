@@ -17,6 +17,8 @@ handlers:
   static_dir: static
   application_readable: true
   secure: always
+  http_headers:
+    Access-Control-Allow-Origin: "*"
 - url: /exportrunner
   script: server.access_app
   secure: always
