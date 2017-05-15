@@ -119,17 +119,17 @@ access_tool.App.prototype.createDrawingManager = function(){
  * or "resultReady".
  * @param statename
  */
-access_tool.App.prototype.setState = function(statename){
-    if (statename === 'blank'){
+access_tool.App.prototype.setState = function(statename) {
+    if (statename === 'blank') {
         // clear result image
         this.map.overlayMapTypes.clear();
         // clear all markers
-        for (var i = 0; i< this.sourceMarkers.length; i++){
+        for (var i = 0; i < this.sourceMarkers.length; i++) {
             this.sourceMarkers[i].setMap(null);
         }
         this.sourceMarkers = [];
 
-        for (var i = 0; i< this.queryMarkers.length; i++){
+        for (var i = 0; i < this.queryMarkers.length; i++) {
             this.queryMarkers[i].setMap(null);
         }
         this.queryMarkers = [];
@@ -145,14 +145,18 @@ access_tool.App.prototype.setState = function(statename){
         //$('#urlDownload').html('Awaiting URL').hide();
 
         // disable result querying
-        if (this.identifyListener){
+        if (this.identifyListener) {
             google.maps.event.removeListener(this.identifyListener);
         }
         this.identifyListener = null;
+        if (this.zoomListener){
+            google.maps.event.removeListener(this.zoomListener);
+        }
+        this.zoomListener = null;
     }
 
-    else if (statename === 'toolReady'){
-        if (this.sourceMarkers.length == 0){
+    else if (statename === 'toolReady') {
+        if (this.sourceMarkers.length == 0) {
             // check in case we were called from csv loader but it was unsuccessful
             return;
         }
@@ -162,7 +166,7 @@ access_tool.App.prototype.setState = function(statename){
         $('.tool-controls .clear').prop("disabled", false);
     }
 
-    else if (statename === 'toolRunning'){
+    else if (statename === 'toolRunning') {
         // disable all buttons
         $('.tool-controls .run').prop("disabled", true);
         $('.tool-controls .clear').prop("disabled", true);
@@ -173,26 +177,55 @@ access_tool.App.prototype.setState = function(statename){
         this.drawingManager.setMap(null);
 
         // prevent dragging / alteration of all markers when search is initiated
-        for (var i = 0; i < this.sourceMarkers.length; i++){
+        for (var i = 0; i < this.sourceMarkers.length; i++) {
             this.sourceMarkers[i].draggable = false;
         }
     }
 
-    else if (statename === 'resultReady'){
-        // enable result download and reset buttons
-        $('.tool-controls .export').prop("disabled", false);
+    else if (statename === 'resultReady') {
+        // enable reset button
         $('.tool-controls .clear').prop("disabled", false);
         // enable result query
         this.identifyListener = google.maps.event.addListener(
             this.map,
             "click",
-            (function(e){
+            (function (e) {
                 this.queryResultPost(e);
+            }).bind(this)
+        );
+        this.zoomListener = google.maps.event.addListener(
+            this.map,
+            "bounds_changed",
+            (function (e) {
+                this.checkExportable();
             }).bind(this)
         );
     }
     this.currentState = statename;
-}
+    this.checkExportable();
+};
+
+access_tool.App.prototype.checkZoomOkToExport = function(){
+    var extent = this.map.getBounds().toSpan();
+    if ((extent.lat() * extent.lng()) > access_tool.App.MAX_EXPORT_SQ_DEG){
+        return false;
+    }
+    else {
+        return true;
+    }
+};
+
+access_tool.App.prototype.checkExportable = function(){
+    // enable export only if the extent of the view, which clips the output, is small enough
+    if (this.currentState === 'resultReady'){
+        if (this.checkZoomOkToExport()){
+             $('.tool-controls .export').prop("disabled", false);
+        }
+        else {
+             $('.tool-controls .export').prop("disabled", true);
+        }
+    }
+};
 
 /**
  * Sets the alert with the given name to have the class and content given.
@@ -654,6 +687,12 @@ access_tool.App.DEFAULT_ZOOM = 4;
 // This is set to 9 which is 305m at the equator, still 3* finer than the
 // friction surface
 access_tool.App.MAX_ZOOM = 9;
+
+/** @type (number) The maximum ara of map that can be exported, in square degrees (!) */
+// Unfortunately as we're exporting in lat/lon then we have to think about square degrees
+// to determine the pixel counts. Empirically ~12*24 degrees seems to export to google drive
+// in circa 1 hour which is quite long enough.
+access_tool.App.MAX_EXPORT_SQ_DEG = 288;
 
 /** @type {Object} The default center of the map. */
 access_tool.App.DEFAULT_CENTER = {lng: 5, lat: 50};
