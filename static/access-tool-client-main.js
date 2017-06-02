@@ -43,9 +43,9 @@ access_tool.App = function(mapLayer, channelToken, channelClientId) {
 
     // we probably don't actually need a drawing manager if we're only using sourceMarkers
     // could just wire up the map click event instead
-    this.drawingManager = this.createDrawingManager();
-    google.maps.event.addListener(this.drawingManager, 'markercomplete',
-        this.handleNewMarker.bind(this));
+    //this.drawingManager = this.createDrawingManager();
+    //google.maps.event.addListener(this.drawingManager, 'markercomplete',
+    //    this.handleNewMarker.bind(this));
     this.sourceMarkers = [];
     this.queryMarkers = [];
     this.setState('blank');
@@ -88,9 +88,13 @@ access_tool.App.prototype.createMap = function(mapLayer){
       center: access_tool.App.DEFAULT_CENTER,
       zoom: access_tool.App.DEFAULT_ZOOM,
       maxZoom: access_tool.App.MAX_ZOOM,
-      mapTypeId: 'roadmap'
+      mapTypeId: 'roadmap',
       //,disableDefaultUI: true, // not using, to allow satellite view
-      // streetViewControl: false
+      streetViewControl: false,
+      mapTypeControlOptions:{
+          //style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+          position: google.maps.ControlPosition.LEFT_BOTTOM
+      }
   };
   var mapElement = $('.map').get(0);
   var map = new google.maps.Map(mapElement, mapOptions);
@@ -106,7 +110,7 @@ access_tool.App.prototype.createDrawingManager = function(){
     drawingMode: google.maps.drawing.OverlayType.MARKER,
     drawingControl: true,
     drawingControlOptions: {
-      position: google.maps.ControlPosition.TOP_CENTER,
+      position: google.maps.ControlPosition.BOTTOM_LEFT,
       drawingModes: ['marker']//, 'circle', 'polygon', 'polyline', 'rectangle']
     },
     markerOptions: {
@@ -140,7 +144,8 @@ access_tool.App.prototype.setState = function(statename) {
         this.queryMarkers = [];
 
         // enable drawing manager and file chooser
-        this.drawingManager.setMap(this.map);
+        //this.drawingManager.setMap(this.map);
+        this.toggleDrawing(true);
         $('.tool-controls .loadcsv').prop("disabled", false);
 
         // disable download, runner, and reset buttons
@@ -158,6 +163,8 @@ access_tool.App.prototype.setState = function(statename) {
             google.maps.event.removeListener(this.zoomListener);
         }
         this.zoomListener = null;
+
+        this.removeAlert("toolRunning");
     }
 
     else if (statename === 'toolReady') {
@@ -179,7 +186,8 @@ access_tool.App.prototype.setState = function(statename) {
         $('.tool-controls .loadcsv').prop("disabled", true);
 
         // disable drawing
-        this.drawingManager.setMap(null);
+        //this.drawingManager.setMap(null);
+        this.toggleDrawing(false);
 
         // prevent dragging / alteration of all markers when search is initiated
         for (var i = 0; i < this.sourceMarkers.length; i++) {
@@ -298,6 +306,35 @@ access_tool.App.prototype.handleNewMarker = function(marker){
   this.setState('toolReady');
 };
 
+access_tool.App.prototype.toggleDrawing = function(activate){
+    if (activate){
+
+        this.drawListener = google.maps.event.addListener(
+            this.map,
+            "click",
+            (function (e) {
+                if (this.sourceMarkers.length < access_tool.App.MAX_SOURCES) {
+                    var latitude = e.latLng.lat();
+                    var longitude = e.latLng.lng();
+                    var pt = new google.maps.LatLng(latitude, longitude);
+                    var newMarker = new google.maps.Marker({
+                        position: pt,
+                        icon: '/static/icons/star-3-clicked-source.png',
+                        map: this.map,
+                        draggable: true
+                    });
+                    this.sourceMarkers.push(newMarker);
+                    this.setState("toolReady");
+                }
+            }).bind(this)
+        );
+        this.map.cur
+    }
+    else {
+        google.maps.event.removeListener(this.drawListener);
+        this.drawListener = null;
+    }
+}
 /** Reads a CSV file and loads the lat/long or x/y columns to sourceMarkers on the map.
  * We use a different icon to distinguish these from markers that are created interactively
  * and these ones are not draggable. Zooms / pans the map to encompass the new markers.
@@ -398,7 +435,11 @@ access_tool.App.prototype.runToolPost = function(){
         // don't yet have anywhere to put the download link so disable for now
         //$('#btnDownload').prop("disabled", false);
       }).bind(this)),
-        this.setAlert.bind(this, 'toolRunning', 'danger', 'Search failed')
+        ((function(){
+            this.setAlert('toolRunning', 'danger', 'Search failed');
+            this.setState("toolReady");
+        }).bind(this))
+
     );
 };
 
