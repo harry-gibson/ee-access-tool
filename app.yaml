@@ -1,8 +1,10 @@
 runtime: python27
 api_version: 1
 threadsafe: true
-basic_scaling:
-  max_instances: 4
+# the export takes way way over 10 minutes, which is the task limit for auto scaling, so have to
+# use basic scaling
+# basic_scaling:
+#  max_instances: 15
 
 libraries:
 - name: jinja2
@@ -17,6 +19,7 @@ handlers:
   static_dir: static
   application_readable: true
   secure: always
+
   http_headers:
     Access-Control-Allow-Origin: "*"
 - url: /exportrunner

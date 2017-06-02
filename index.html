@@ -18,7 +18,11 @@
 
 
     <link rel="stylesheet" href="/static/style.css">
-    <script src='/_ah/channel/jsapi'></script>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+
+     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+      <script src='/_ah/channel/jsapi'></script>
 
     <!-- The Google JavaScript loader tool (for the Maps, Charts APIs). -->
     <script src="https://www.google.com/jsapi"></script>
@@ -26,8 +30,6 @@
 
     <!-- Accessibility Tool javascript. -->
     <script src="/static/access-tool-client-main.js"></script>
-
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 
 
   </head>
@@ -37,59 +39,115 @@
   <!-- The DOM of our application. -->
   <div class="access-app">
       <!-- The title of the application. -->
-      <h1>Accessibility Mapper</h1>
-      <!--<div id="floating-panel">
-        <input id="btnRun" type=button value="Run Tool">
-        <input id="btnClear" type=button value="Clear Map">
-        <input id="btnCsv" type=file value="Load CSV">
-        <input id="btnDownload" type=button value="Download Image">
-        <span id="urlDownload">Awaiting URL...</span>
-      </div>-->
+      <h1>Global Accessibility Mapping</h1>
 
       <!-- A container which the Maps API will populate with a map. -->
       <div class="map"></div>
 
       {# The UI wrapper for the control box and notifications. #}
       <div class="ui">
-          <!-- The panel to show details about a place. -->
+          <!-- The main tool panel  -->
           <div class="panel">
             <header>
-                <h2>Interactive Accessibility Mapper</h2>
+                <h2>Interactive Accessibility Tool</h2>
                 <p class="instructions">
-                    Click on the map to add markers or source points, and/or load from a CSV
+                    Choose the points to which you want to map the travel time.
                 </p>
             </header>
 
             <!-- The button to toggle the panel expanded/collapsed. Mobile-only. -->
-            <div class="toggler">toggle</div>
-
-            <!-- The button to close the panel. Desktop-only. -->
-            <!--<div class="close">close</div>-->
+            <span class="toggler glyphicon glyphicon-menu-hamburger"></span>
 
             <div class="tool-controls">
                 <div class="inputs">
-                    <div class="input-block maincontrols">
-                        <button class="run btn btn-default btn-xs" disabled>Run Tool</button>
-                        <button class="clear btn btn-default btn-xs" disabled>Clear Map</button>
-                    </div>
-                    <div class="input-block loadcontrols">
+                    <p class="instructions">
+                        Click the map to add markers.
+                    </p>
+                    <div class="input-block loadcontrols well hidden-xs">
+                        <p class="instructions">
+                            Alternatively you can load points from a CSV file. Click to choose a file:
+                        </p>
                         <button class="loadcsv btn btn-default btn-xs btn-file">
                             Load CSV<input type="file" class="loadcsv btn-file">
                         </button>
                     </div>
-                    <div class="input-block">
+
+                    <div class="input-block maincontrols well">
+                        <p class="instructions">
+                            When you have added all the points, click to create the map
+                        </p>
+                        <button class="run btn btn-primary btn-xs" disabled>Run Tool</button>
+                        <button class="clear btn btn-danger btn-xs" disabled>Clear Map</button>
+                    </div>
+
+                    <button class="export btn btn-primary" data-toggle="modal" data-target="#exportModal" disabled>Export</button>
+            </div>
+
+        </div>
+              </div>
+          <div class="alerts"></div>
+
+    </div>
+
+  <!--login modal-->
+    <div id="infoModal" class="modal fade"  role="dialog">
+      <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+          <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal">×</button>
+              <h2 class="text-center">Interactive Accessibility Tool</h2>
+          </div>
+          <div class="modal-body">
+              <p>This tool allows to create your own custom accessibility map, showing the estimated travel time
+              from all locations to the nearest point of interest.</p>
+              <p>Using the locations of all cities with 50,000 or more inhabitants resulted in the global map of accessibility
+                  <a href="http://dev.roadlessforest.eu/map.html">
+                  published recently.&nbsp
+                  </a>However, this tool uses the same underlying datasets to create new accessibility maps to a location or
+              locations of your choice, while you wait.</p>
+              <p>To enter the locations, you can either click on the map to add points, or you can load a CSV file. If you choose
+              to load a CSV then you must pick a file containing columns called "lat" and "lon", or "x" and "y".</p>
+              <p>Once the points are added to the map, click Run Tool to calculate the map. Depending on the area, this will take from
+              several seconds to several minutes to complete.</p>
+              <p>You can export the generated map to your Google Drive account, so you can obtain a local copy for use in a GIS program
+              of your choice. To enable the "export" button you will need to zoom in the map, as the export can only be run for a limited
+              area - pan the map to display the area of interest for export before pressing the button. Please note that due to the
+              on-demand processing nature of Google Earth Engine, the export may take as long as several hours to complete!</p>
+                <div class="form-group">
+                  <button class="btn btn-primary btn-lg btn-block" data-dismiss="modal">Get Started!</button>
+                </div>
+          </div>
+          <div class="modal-footer">
+
+          </div>
+      </div>
+      </div>
+    </div>
+  <div id="exportModal" class="modal fade" role="dialog">
+      <div class="modal-dialog">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <button type="button" class="close" data-dismiss="modal">x</button>
+                  <h2 class="text-center">Export result map</h2>
+              </div>
+              <div class="modal-body">
+                  <p>You can export the map as it is currently shown on screen to a file in your Google Drive.</p>
+                  <p>The map export will be limited to the area currently shown on the map, so pan the
+                  map to the area you're interested in before beginning the export. You can only export a limited
+                  area, so if you zoom out too far then the export button will be disabled.</p>
+                  <p>The export will take a while to run - anything up to several hours!</p>
+
+              <div class="input-block">
                         <span class="input-block-label">Filename:</span>
                         <input type="text" name="filename" class="filename form-control" placeholder="default: Access_Map_Export_<datetime>">
                     </div>
                 </div>
                 <button class="export btn btn-primary" disabled>Export</button>
-            </div>
+              </div>
+          </div>
 
-        </div>
-          <div class="alerts"></div>
       </div>
   </div>
-
 
   <a href="https://earthengine.google.org">
       <img class="powered-by-ee"
@@ -101,6 +159,7 @@
   <!-- The "Fork me on GitHub" ribbon. -->
   <a href="https://github.com/harry-gibson/ee-access-tool/">
     <img style="position: absolute; top: 0; right: 0; border: 0; z-index: 1;"
+         class="hidden-xs"
          alt="Fork me on GitHub"
          src="https://camo.githubusercontent.com/52760788cde945287fbb584134c4cbc2bc36f904/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f77686974655f6666666666662e706e67"
          data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_white_ffffff.png">

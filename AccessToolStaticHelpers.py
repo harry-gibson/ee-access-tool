@@ -72,9 +72,9 @@ def computeCostDist(sourcesImage, clip=False, computationScale=NATIVE_RESOLUTION
     """Runs the cost-distance map to the provided sources on the friction surface"""
     maxExtent = ee.Geometry.Rectangle(MAX_EXTENT_WSEN)
     frictionSurface = ee.Image(FRICTION_SURFACE)
-    if computationScale != NATIVE_RESOLUTION:
+    if False: #computationScale != NATIVE_RESOLUTION:
         frictionSurface = frictionSurface.reduceResolution(
-            reducer = ee.Reducer.mode(),
+            reducer = ee.Reducer.mean(),
             maxPixels = int((computationScale / NATIVE_RESOLUTION)**2 + 10)
         )
     searchRadius = min(SEARCH_RADIUS_KM, 10000)

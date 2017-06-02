@@ -26,6 +26,9 @@ access_tool.boot = function(eeMapId, eeToken, channelToken, channelClientId){
   });
 
 };
+ $(window).on('load',function(){
+        $('#infoModal').modal('show');
+    });
 
 /**
  * Constructor for the main access tool application. This is called from the boot function.
@@ -54,11 +57,13 @@ access_tool.App = function(mapLayer, channelToken, channelClientId) {
             this.setState('blank');
         })
             .bind(this));
-    $('.tool-controls .export').click(this.exportMap.bind(this));
+    $('.modal-dialog .export').click(this.exportMap.bind(this));
     //http://markusslima.github.io/bootstrap-filestyle/
     //https://www.abeautifulsite.net/whipping-file-inputs-into-shape-with-bootstrap-3
     $('.tool-controls .loadcsv').change(this.createCsvMarkers.bind(this));
-
+    $('.panel .toggler').click((function() {
+        $('.panel').toggleClass('expanded');
+    }).bind(this));
     this.mapDownloadUrl = "";
 
     // todo add modal info
@@ -219,10 +224,10 @@ access_tool.App.prototype.checkExportable = function(){
     // enable export only if the extent of the view, which clips the output, is small enough
     if (this.currentState === 'resultReady'){
         if (this.checkZoomOkToExport()){
-             $('.tool-controls .export').prop("disabled", false);
+             $('.tool-controls .export').prop("disabled", false).prop("title", "Click to export the current map to your Google Drive");
         }
         else {
-             $('.tool-controls .export').prop("disabled", true);
+             $('.tool-controls .export').prop("disabled", true).prop("title", "Zoom in further to export");
         }
     }
 };
@@ -521,7 +526,22 @@ access_tool.App.prototype.getFilename = function(){
         return 'Accessibility_Export' + (new Date()).toISOString().replace(/[^0-9]/g, '');
     }
 };
+/**
+* function to show info screen
+* using the info button
+ */
+access_tool.App.prototype.showInfo = function() {
 
+   // get infoscreen by id
+   var infoscreen = document.getElementById('general-info');
+
+   // open or close screen
+   if  (infoscreen.style.display === 'none') {
+	infoscreen.style.display = 'block';
+	} else {
+      infoscreen.style.display = 'none';
+    }
+}
 // https://developers.google.com/maps/documentation/javascript/datalayer
 
 

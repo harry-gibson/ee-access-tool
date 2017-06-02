@@ -1,4 +1,4 @@
-/** User interface styles for the Trendy Lights app. */
+/** User interface styles for the Accesibility Tool app. */
 
 .template {
   display: none;
@@ -14,6 +14,13 @@
   color: white;
   text-shadow: 0px 0px 20px black;
 }
+.access-app h2 {
+  font-family: 'Roboto Condensed', sans-serif;
+  z-index: 1;
+  margin: 0px;
+  color: rebeccapurple;
+  text-shadow:  0px 0px 2px gray;
+}
 
 html,
 body,
@@ -23,6 +30,7 @@ body,
   margin: 0px;
   padding: 0px;
   overflow: hidden;
+
 }
 
 body,
@@ -44,19 +52,7 @@ isindex {
     /*width: 470px;*/
     z-index: 1;
 }
-#floating-panel {
-  position: absolute;
-  top: 25%;
-  left:10px;
-  z-index: 5;
-  background-color: #fff;
-  padding: 5px;
-  border: 1px solid #999;
-  text-align: center;
-  font-family: 'Roboto', 'sans-serif';
-  line-height: 30px;
-  padding-left: 10px;
-}
+
 .access-app .panel {
     border-radius: 2px;
     background-color: white;
@@ -80,7 +76,7 @@ isindex {
     margin-bottom: 0;
     display: block;
 }
-.access-app .tool-controls {
+/*.access-app .tool-controls {
     display: flex;
     flex-flow: row nowrap;
     align-items: flex-end;
@@ -91,11 +87,13 @@ isindex {
 .access-app .inputs,
 .access-app .btn.export{
     display: inline-block;
-}
+}*/
+
 .access-app .btn-file{
     position: relative;
     overflow: hidden;
 }
+/* fudge for styling a file input button without it having the default "Choose file" text*/
 .access-app .btn-file input[type=file]{
     position: absolute;
     top:0;
@@ -111,6 +109,7 @@ isindex {
     cursor: inherit;
     display: block;
 }
+/*
 .access-app .input-block {
     display: block;
     margin-top: 7px;
@@ -130,7 +129,7 @@ isindex {
 .access-app .access-app{
     flex-grow: 1;
 }
-
+*/
 .access-app .alerts .alert {
       margin-top: 8px;
       margin-bottom: 0;
@@ -157,7 +156,7 @@ isindex {
 }
 
 /* continue here line 67 of demo css*/
-.access-app .powered-by-ee {
+.powered-by-ee {
   position: absolute;
   z-index: 1;
   bottom: 10px;
@@ -167,9 +166,6 @@ isindex {
 }
 
 
-#floating-panel #urlDownload{
-    display: none;
-}
 /* Small screens. */
 
 @media (max-width: 900px) {
@@ -185,7 +181,7 @@ isindex {
     height: 50px;
   }
 
-  .access-app .panel .details {
+  .access-app .panel .tool-controls {
     visibility: hidden;
     max-height: 400px;
     padding-right: 10px;
@@ -202,7 +198,7 @@ isindex {
     cursor: pointer;
   }
 
-  .access-app .panel.expanded .details  {
+  .access-app .panel.expanded .tool-controls  {
     visibility: visible;
   }
 
@@ -247,3 +243,4 @@ isindex {
     display: none;
   }
 }
+.modal-footer {   border-top: 0px; }

@@ -128,8 +128,8 @@ class CostPathHandler(webapp2.RequestHandler):
         eeRectRegion = jsonRegionToJsonRectangle(requestRegion)
         srcImage = paintPointsToImage(eeFcPts)
         costImage = computeCostDist(srcImage, computationScale=INTERACTIVE_RESOLUTION)
-        costImageId = GetAccessMapId_Plain(costImage)
-        #costImageId = GetAccessMapId_Pretty(costImage)
+        #costImageId = GetAccessMapId_Plain(costImage)
+        costImageId = GetAccessMapId_Pretty(costImage)
         costImageDownloadUrl = getImageDownloadUrl(costImage, eeRectRegion)
         layers = []
         layers.append({
@@ -303,6 +303,9 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         Returns:
           A link to the files in the user's Drive.
         """
+
+        # Create (and thus, authenticate) the drive helper object here rather than
+        # as a global, otherwise, the export is so slow that it times out and gets a 401
         APP_DRIVE_HELPER = drive.DriveHelper(APP_CREDENTIALS)
         files = APP_DRIVE_HELPER.GetExportedFiles(temp_file_prefix)
 
