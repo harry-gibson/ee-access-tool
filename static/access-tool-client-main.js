@@ -27,7 +27,10 @@ access_tool.boot = function(eeMapId, eeToken, channelToken, channelClientId){
 
 };
  $(window).on('load',function(){
-        $('#infoModal').modal('show');
+     var no_splash = localStorage.getItem('no_display_access_splash');
+     if (no_splash !== 'true') {
+         $('#infoModal').modal('show');
+     }
     });
 
 /**
@@ -55,15 +58,34 @@ access_tool.App = function(mapLayer, channelToken, channelClientId) {
     $('.tool-controls .clear').click(
         (function () {
             this.setState('blank');
-        })
-            .bind(this));
-    $('.modal-dialog .export').click(this.exportMap.bind(this));
+        }).bind(this));
+    $('.modal-dialog .exportFire').click(this.exportMap.bind(this));
+
     //http://markusslima.github.io/bootstrap-filestyle/
     //https://www.abeautifulsite.net/whipping-file-inputs-into-shape-with-bootstrap-3
     $('.tool-controls .loadcsv').change(this.createCsvMarkers.bind(this));
+
+    // expand / collapse the panel on mobile to get it out of the way
     $('.panel .toggler').click((function() {
         $('.panel').toggleClass('expanded');
     }).bind(this));
+
+    $('.tool-controls .showinfo').click(function() {
+        $('#infoModal').modal('show');
+    });
+
+    $('#chkNoShowSplash').change(function(e){
+        if (e.currentTarget.checked){
+            try {
+                localStorage.setItem('no_display_access_splash', 'true');
+            }
+            catch(e){ }
+        }
+        else{
+            localStorage.removeItem('no_display_access_splash');
+        }
+    });
+
     this.mapDownloadUrl = "";
 
     // todo add modal info
@@ -130,6 +152,9 @@ access_tool.App.prototype.createDrawingManager = function(){
  */
 access_tool.App.prototype.setState = function(statename) {
     if (statename === 'blank') {
+        // Initial state or after hitting the clear map button. Adding markers is enabled,
+        // run tool and export are disabled.
+
         // clear result image
         this.map.overlayMapTypes.clear();
         // clear all markers
@@ -146,13 +171,17 @@ access_tool.App.prototype.setState = function(statename) {
         // enable drawing manager and file chooser
         //this.drawingManager.setMap(this.map);
         this.toggleDrawing(true);
+
         $('.tool-controls .loadcsv').prop("disabled", false);
 
         // disable download, runner, and reset buttons
         $('.tool-controls .export').prop("disabled", true).show();
         $('.tool-controls .run').prop("disabled", true);
         $('.tool-controls .clear').prop("disabled", true);
-        //$('#urlDownload').html('Awaiting URL').hide();
+
+        // hide sections for export and run
+        $('.tool-controls .exportcontrols').addClass('hidden');
+        $('.tool-controls .maincontrols').addClass('hidden');
 
         // disable result querying
         if (this.identifyListener) {
@@ -163,7 +192,6 @@ access_tool.App.prototype.setState = function(statename) {
             google.maps.event.removeListener(this.zoomListener);
         }
         this.zoomListener = null;
-
         this.removeAlert("toolRunning");
     }
 
@@ -176,6 +204,8 @@ access_tool.App.prototype.setState = function(statename) {
         $('.tool-controls .run').prop("disabled", false);
         // enable reset
         $('.tool-controls .clear').prop("disabled", false);
+        $('.tool-controls .maincontrols').removeClass('hidden');
+
     }
 
     else if (statename === 'toolRunning') {
@@ -186,13 +216,15 @@ access_tool.App.prototype.setState = function(statename) {
         $('.tool-controls .loadcsv').prop("disabled", true);
 
         // disable drawing
-        //this.drawingManager.setMap(null);
         this.toggleDrawing(false);
 
         // prevent dragging / alteration of all markers when search is initiated
         for (var i = 0; i < this.sourceMarkers.length; i++) {
             this.sourceMarkers[i].draggable = false;
         }
+
+        $('.tool-controls .markercontrols').addClass('hidden');
+        $('.tool-controls .maincontrols').addClass('hidden');
     }
 
     else if (statename === 'resultReady') {
@@ -213,8 +245,12 @@ access_tool.App.prototype.setState = function(statename) {
                 this.checkExportable();
             }).bind(this)
         );
+        // show the div with the export launcher in, but check the zoom before actually
+        // enabling the button
+        $('.tool-controls .exportcontrols').removeClass('hidden');
     }
     this.currentState = statename;
+
     this.checkExportable();
 };
 
