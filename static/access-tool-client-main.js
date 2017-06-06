@@ -180,6 +180,8 @@ access_tool.App.prototype.setState = function(statename) {
         $('.tool-controls .run').prop("disabled", true);
         $('.tool-controls .clear').prop("disabled", true);
 
+        // show section for loading points
+        $('.tool-controls .markercontrols').removeClass('hidden');
         // hide sections for export and run
         $('.tool-controls .exportcontrols').addClass('hidden');
         $('.tool-controls .maincontrols').addClass('hidden');

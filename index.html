@@ -51,7 +51,7 @@
             <header>
                 <h2>Interactive Accessibility Tool</h2>
                 <p class="instructions">
-                    Choose the points to which you want to map the travel time.
+
                 </p>
             </header>
 
@@ -61,16 +61,18 @@
             <div class="tool-controls">
                 <div class="inputs">
                     <div class="input-block markercontrols">
-                        <p class="instructions">
-                            Click the map to add markers.
-                        </p>
-                        <div class="input-block loadcontrols well hidden-xs">
+                        <div class="input-block loadcontrols well">
                             <p class="instructions">
-                                Alternatively you can load points from a CSV file. Click to choose a file:
+                            Click the map to add points to which you want to map the travel time.
                             </p>
-                            <button class="loadcsv btn btn-default btn-xs btn-file">
-                                Load CSV<input type="file" class="loadcsv btn-file">
-                            </button>
+                            <div class="hidden-xs">
+                                <p class="instructions">
+                                    Alternatively you can load points from a CSV file. Click to choose a file:
+                                </p>
+                                <button class="loadcsv btn btn-default btn-xs btn-file">
+                                    Load CSV<input type="file" class="loadcsv btn-file">
+                                </button>
+                            </div>
                         </div>
                     </div>
 
