@@ -288,7 +288,7 @@ access_tool.App.prototype.checkExportable = function(){
  * @param {string} line1 The first line of the alert text
  * @param {string=} opt_line2 The second line of the alert text
  */
-access_tool.App.prototype.setAlert = function(name, cls, line1, opt_line2){
+access_tool.App.prototype.setAlert = function(name, cls, line1, opt_line2, opt_timeout){
     var alert;
     var existing = this.findAlert(name);
     if (existing) {
@@ -307,6 +307,11 @@ access_tool.App.prototype.setAlert = function(name, cls, line1, opt_line2){
   alert.append($('<p/>').append(line1))
        .append($('<p/>', {class: 'line2'}).append(opt_line2))
        .addClass('visible');
+  if (opt_timeout){
+      window.setTimeout(function(){
+          this.removeAlert(name);
+      }.bind(this), opt_timeout);
+  }
 };
 
 /**
@@ -389,47 +394,91 @@ access_tool.App.prototype.createCsvMarkers = function(e){
   var reader = new FileReader();
   reader.onload = function(e){
     var textContent = reader.result;
-    var parsedContent = access_tool.App.csvToArray(textContent);
+    try {
+        var parsedContent = access_tool.App.csvToArray(textContent);
+    }
+    catch (e){
+        this.setAlert("csvload", "danger",
+            "CSV Error - problem parsing the CSV.",
+            "Ensure the file has complete columns named lat/lon or x/y ",
+            8000);
+        return;
+    }
     var headers = parsedContent[0];
     var latFieldIdx = -1;
     var lonFieldIdx = -1;
     var fileBounds = new google.maps.LatLngBounds();
 
+    var inconclusive = false;
     // guesstimate which is the lat and lon fields
     for (var i = 0; i < headers.length; i++){
       var maybeFieldName = headers[i];
       if (maybeFieldName.toLowerCase().substr(0,3) == "lat" ||
           maybeFieldName.toLowerCase() == "y"){
-            latFieldIdx = i;
+            if (latFieldIdx === -1) {
+                latFieldIdx = i;
+            }
+            else{
+                inconclusive = true;
+            }
           }
       else if (maybeFieldName.toLowerCase().substr(0,3) == "lon" ||
           maybeFieldName.toLowerCase().substr(0,3) == "lng" ||
           maybeFieldName.toLowerCase() == "x") {
-            lonFieldIdx = i;
+            if (lonFieldIdx === -1) {
+                lonFieldIdx = i;
+            }
+            else {
+                inconclusive = true;
+            }
       }
     }
-    if (latFieldIdx < 0 || lonFieldIdx < 0){
+    if (latFieldIdx < 0 || lonFieldIdx < 0 || inconclusive){
+      this.setAlert("csvload", "danger",
+            "CSV Error - could not identify latitude / longitude columns.",
+            "Ensure the file has columns named lat/lon or x/y.",
+            8000);
       return;
     }
     var any = false;
-
-    for (var i = 1; i < parsedContent.length; i++){
-      any = true;
-      var dataRow = parsedContent[i];
-      var latitude = parseFloat(dataRow[latFieldIdx]);
-      var longitude = parseFloat(dataRow[lonFieldIdx]);
-      var pt = new google.maps.LatLng(latitude, longitude);
-      var newMarker = new google.maps.Marker({
-          position: pt,
-          icon: '/static/icons/star-3-imported-source.png',
-          map: this.map
-      });
-      this.sourceMarkers.push(newMarker);
-      fileBounds.extend(pt);
+    var newMarkers = [];
+    try{
+        for (var i = 1; i < parsedContent.length; i++){
+          any = true;
+          var dataRow = parsedContent[i];
+          var latitude = parseFloat(dataRow[latFieldIdx]);
+          var longitude = parseFloat(dataRow[lonFieldIdx]);
+          var pt = new google.maps.LatLng(latitude, longitude);
+          var newMarker = new google.maps.Marker({
+              position: pt,
+              icon: '/static/icons/star-3-imported-source.png',
+              map: this.map
+          });
+          newMarkers.push(newMarker);
+          fileBounds.extend(pt);
+        }
+    }
+    catch(e){
+        any = false;
+        this.setAlert("csvload", "danger",
+            "CSV Error - problem parsing the CSV.",
+            "Ensure there is a lat / lon value in every row.",
+            8000);
     }
     if(any){
-      this.map.fitBounds(fileBounds);
-      this.setState('toolReady');
+        for (var i = 0; i < Math.min(newMarkers.length, access_tool.App.MAX_SOURCES); i++) {
+            newMarkers[i].map = this.map;
+            this.sourceMarkers.push(newMarkers[i]);
+        }
+        this.map.fitBounds(fileBounds);
+        if (newMarkers.length>access_tool.App.MAX_SOURCES){
+            this.setAlert("csvload", "warning",
+                "Loaded first "+access_tool.App.MAX_SOURCES +" rows from CSV only!");
+        }
+        else {
+            this.setAlert("csvload", "info", "CSV loaded successfully!", null, 2000);
+        }
+        this.setState('toolReady');
     }
   }.bind(this);
   reader.readAsText(csvFilePath);
@@ -471,12 +520,14 @@ access_tool.App.prototype.runToolPost = function(){
             }).bind(this))
         );
         this.setState('resultReady');
-        this.setAlert('toolRunning', 'success', "Search ok - loading tiles");
+        this.setAlert('toolRunning', 'success', "Search ok - loading tiles", null, 5000);
         // don't yet have anywhere to put the download link so disable for now
         //$('#btnDownload').prop("disabled", false);
       }).bind(this)),
         ((function(){
-            this.setAlert('toolRunning', 'danger', 'Search failed');
+            this.setAlert('toolRunning', 'danger', 'Search failed',
+                "An error occurred with the search. Please try again, but this may be a server problem",
+                8000);
             this.setState("toolReady");
         }).bind(this))
 
@@ -719,7 +770,7 @@ access_tool.App.csvToArray = function(csvStringData, delim){
 	// Keep looping over the regular expression matches
 	// until we can no longer find a match.
 	while ((arrMatches = objPattern.exec( csvStringData ) ) && arrData.length <
-    access_tool.App.MAX_SOURCES)
+    access_tool.App.MAX_SOURCES + 1)
 	{
 		// Get the delimiter that was found.
 		var strMatchedDelimiter = arrMatches[ 1 ];

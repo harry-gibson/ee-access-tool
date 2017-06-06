@@ -65,9 +65,10 @@
                             <p class="instructions">
                             Click the map to add points to which you want to map the travel time.
                             </p>
+                            <!-- don't show csv loader on mobile, unlikely to be useful -->
                             <div class="hidden-xs">
                                 <p class="instructions">
-                                    Alternatively you can load points from a CSV file. Click to choose a file:
+                                    Alternatively you can load points from a CSV file.
                                 </p>
                                 <button class="loadcsv btn btn-default btn-xs btn-file">
                                     Load CSV<input type="file" class="loadcsv btn-file">
@@ -156,12 +157,13 @@
                   area, so if you zoom out too far then the export button will be disabled.</p>
                   <p>The export will take a while to run - anything up to several hours!</p>
 
-              <div class="input-block">
+                <div class="input-block">
                         <span class="input-block-label">Filename:</span>
                         <input type="text" name="filename" class="filename form-control" placeholder="default: Access_Map_Export_<datetime>">
-                    </div>
                 </div>
-                <button class="exportFire btn btn-primary" disabled>Export</button>
+                  <button class="exportFire btn btn-primary" disabled>Export</button>
+              </div>
+
               </div>
           </div>
 
