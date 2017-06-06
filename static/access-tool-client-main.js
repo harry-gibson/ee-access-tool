@@ -272,10 +272,12 @@ access_tool.App.prototype.checkExportable = function(){
     // enable export only if the extent of the view, which clips the output, is small enough
     if (this.currentState === 'resultReady'){
         if (this.checkZoomOkToExport()){
-             $('.tool-controls .export').prop("disabled", false).prop("title", "Click to export the current map to your Google Drive");
+             $('.tool-controls .export').prop("disabled", false).prop("title", "Click to open the export dialog");
+             $('.exportModal .exportFire').prop("disabled", false).prop("title", "Click to export the current map to your Google Drive");
         }
         else {
              $('.tool-controls .export').prop("disabled", true).prop("title", "Zoom in further to export");
+             $('.exportModal .exportFire').prop("disabled", true);
         }
     }
 };

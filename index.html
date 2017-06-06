@@ -85,8 +85,9 @@
                     </div>
 
                     <div class="input-block exportcontrols well hidden" >
+                        <p class="instructions">Click the map to query the value at a point.</p>
                         <p class="instructions">
-                            You can export the map to your Google Drive.
+                            You can also export the map to your Google Drive.
                             You can only export a limited area, so zoom in the map until the Export button becomes enabled.
                             You don't need to wait for the images to finish loading on-screen!
                         </p>
@@ -153,7 +154,7 @@
               <div class="modal-body">
                   <p>You can export the map as it is currently shown on screen to a file in your Google Drive.</p>
                   <p>The map export will be limited to the area currently shown on the map, so pan the
-                  map to the area you're interested in before beginning the export. You can only export a limited
+                  map to the area you're interested in before beginning the export. You can currently only export a limited
                   area, so if you zoom out too far then the export button will be disabled.</p>
                   <p>The export will take a while to run - anything up to several hours!</p>
 
@@ -162,6 +163,7 @@
                         <input type="text" name="filename" class="filename form-control" placeholder="default: Access_Map_Export_<datetime>">
                 </div>
                   <button class="exportFire btn btn-primary" disabled>Export</button>
+                  <button class=""btn btn-default btn-sm pull-right data-dismiss="modal">Close</button>
               </div>
 
               </div>
