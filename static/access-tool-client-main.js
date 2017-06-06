@@ -157,6 +157,7 @@ access_tool.App.prototype.setState = function(statename) {
 
         // clear result image
         this.map.overlayMapTypes.clear();
+        $('#maplogo').attr('src','static/map_logo_square_alt.png');
         // clear all markers
         for (var i = 0; i < this.sourceMarkers.length; i++) {
             this.sourceMarkers[i].setMap(null);
@@ -248,6 +249,7 @@ access_tool.App.prototype.setState = function(statename) {
         // show the div with the export launcher in, but check the zoom before actually
         // enabling the button
         $('.tool-controls .exportcontrols').removeClass('hidden');
+        $('#maplogo').attr('src','static/map_logo_square_alt_noxpar.png');
     }
     this.currentState = statename;
 
