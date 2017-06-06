@@ -74,8 +74,14 @@ access_tool.App = function(mapLayer, channelToken, channelClientId) {
         $('#infoModal').modal('show');
     });
 
-    $('#chkNoShowSplash').change(function(e){
-        if (e.currentTarget.checked){
+    var no_splash = localStorage.getItem('no_display_access_splash');
+    if (no_splash === 'true') {
+         $('#chkNoShowSplash')[0].checked=true;
+    }
+
+    //$('#chkNoShowSplash').change(function(e){
+    $('#infoModal').on('hidden.bs.modal', function(e){
+        if ($('#chkNoShowSplash')[0].checked){
             try {
                 localStorage.setItem('no_display_access_splash', 'true');
             }
@@ -88,7 +94,6 @@ access_tool.App = function(mapLayer, channelToken, channelClientId) {
 
     this.mapDownloadUrl = "";
 
-    // todo add modal info
     //http://www.bootply.com/106707
 };
 

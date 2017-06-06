@@ -114,21 +114,31 @@
               <h2 class="text-center">Interactive Accessibility Tool</h2>
           </div>
           <div class="modal-body">
-              <p>This tool allows to create your own custom accessibility map, showing the estimated travel time
-              from all locations to the nearest point of interest.</p>
-              <p>Using the locations of all cities with 50,000 or more inhabitants resulted in the global map of accessibility
+              <p>An accessibility map shows the estimated time that it would take to travel from any location
+                  to the nearest point of interest.</p>
+              <p>The global map of accessibility
                   <a href="http://dev.roadlessforest.eu/map.html">
-                  published recently.&nbsp
-                  </a>However, this tool uses the same underlying datasets to create new accessibility maps to a location or
-              locations of your choice, while you wait.</p>
-              <p>To enter the locations, you can either click on the map to add points, or you can load a CSV file. If you choose
+                  published recently</a> showed the estimated time to travel from any point on earth to the nearest
+                  city of 50,000 or more inhabitants.</p>
+              <p>However, this tool uses the same underlying datasets to allow you to create new accessibility maps,
+                  to a location or locations of your choice, while you wait. The map will show the estimated travel
+                  time from all locations to the nearest (in time) point of interest that you have entered.</p>
+
+              <h3>Instructions</h3>
+
+              <p class="instructions">To enter the locations, you can either click on the map to add points, or you can load a CSV file. If you choose
               to load a CSV then you must pick a file containing columns called "lat" and "lon", or "x" and "y".</p>
-              <p>Once the points are added to the map, click Run Tool to calculate the map. Depending on the area, this will take from
-              several seconds to several minutes to complete.</p>
-              <p>You can export the generated map to your Google Drive account, so you can obtain a local copy for use in a GIS program
-              of your choice. To enable the "export" button you will need to zoom in the map, as the export can only be run for a limited
-              area - pan the map to display the area of interest for export before pressing the button. Please note that due to the
-              on-demand processing nature of Google Earth Engine, the export may take as long as several hours to complete!</p>
+
+              <p class="instructions">Once the points are added to the map, click Run Tool to calculate the map. Depending on the area, this will take from
+              several seconds to several minutes to complete. The map will gradually load in blocks, as the calculations complete.</p>
+
+              <p class="instructions">Once finished, uou can export the generated map to your Google Drive account,
+                  so you can obtain a local copy for use in a GIS program of your choice.
+                  To enable the "export" button you will need to zoom in the map, as the export can only be run for a limited
+                  area (whilst the tool is in development). Pan the map to display the area of interest for export before
+                  pressing the button. Please note that due to the
+                  on-demand processing nature of Google Earth Engine, the export may take as long as several hours to complete!</p>
+
               <form>
                   <div class="checkbox">
                       <label><input type="checkbox" value="" id="chkNoShowSplash">Don't show this next time!</label>
