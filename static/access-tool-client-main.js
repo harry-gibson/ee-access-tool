@@ -2,7 +2,6 @@
 // https://www.w3schools.com/bootstrap/
 access_tool = {};
 
-var interactionMode = 0; // 0 = draw, 1 = upload CSV
 var all_overlays = [];
 var map;
 var app;
@@ -24,9 +23,9 @@ access_tool.boot = function(eeMapId, eeToken, channelToken, channelClientId){
     var mapLayer = access_tool.App.getEeMapLayer(eeMapId, eeToken);
     app = new access_tool.App(mapLayer, channelToken, channelClientId);
   });
-
 };
- $(window).on('load',function(){
+
+$(window).on('load',function(){
      var no_splash = localStorage.getItem('no_display_access_splash');
      if (no_splash !== 'true') {
          $('#infoModal').modal('show');
@@ -44,16 +43,14 @@ access_tool.App = function(mapLayer, channelToken, channelClientId) {
     this.clientId = channelClientId;
     this.channel = new goog.appengine.Channel(channelToken);
 
-    // we probably don't actually need a drawing manager if we're only using sourceMarkers
-    // could just wire up the map click event instead
-    //this.drawingManager = this.createDrawingManager();
-    //google.maps.event.addListener(this.drawingManager, 'markercomplete',
     //    this.handleNewMarker.bind(this));
     this.sourceMarkers = [];
     this.queryMarkers = [];
     this.setState('blank');
 
-    //$('.tool-controls .run').click(this.runTool.bind(this));
+    /*
+     * CONNECT UI EVENT HANDLERS
+     */
     $('.tool-controls .run').click(this.runToolPost.bind(this));
     $('.tool-controls .clear').click(
         (function () {
@@ -79,7 +76,6 @@ access_tool.App = function(mapLayer, channelToken, channelClientId) {
          $('#chkNoShowSplash')[0].checked=true;
     }
 
-    //$('#chkNoShowSplash').change(function(e){
     $('#infoModal').on('hidden.bs.modal', function(e){
         if ($('#chkNoShowSplash')[0].checked){
             try {
@@ -91,9 +87,6 @@ access_tool.App = function(mapLayer, channelToken, channelClientId) {
             localStorage.removeItem('no_display_access_splash');
         }
     });
-
-    this.mapDownloadUrl = "";
-
     //http://www.bootply.com/106707
 };
 
@@ -127,27 +120,12 @@ access_tool.App.prototype.createMap = function(mapLayer){
   var map = new google.maps.Map(mapElement, mapOptions);
   map.setOptions({styles: access_tool.App.SILVER_STYLES});
   if (mapLayer) {
+      // an initial overlay map such as the friction surface or a population map or something
       map.overlayMapTypes.push(mapLayer);
   }
   return map;
 };
 
-access_tool.App.prototype.createDrawingManager = function(){
-  var drawingManager = new google.maps.drawing.DrawingManager({
-    drawingMode: google.maps.drawing.OverlayType.MARKER,
-    drawingControl: true,
-    drawingControlOptions: {
-      position: google.maps.ControlPosition.BOTTOM_LEFT,
-      drawingModes: ['marker']//, 'circle', 'polygon', 'polyline', 'rectangle']
-    },
-    markerOptions: {
-      //icon: 'https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png',
-        icon: '/static/icons/star-3-clicked-source.png',
-        draggable: true
-    }
-  });
-  return drawingManager;
-};
 
 /**
  * Manages the UI to ensure that the displayed accessibility map (if any) and markers
@@ -157,11 +135,14 @@ access_tool.App.prototype.createDrawingManager = function(){
  */
 access_tool.App.prototype.setState = function(statename) {
     if (statename === 'blank') {
-        // Initial state or after hitting the clear map button. Adding markers is enabled,
-        // run tool and export are disabled.
+        /* BLANK MAP
+           Initial state or after hitting the clear map button.
+           Adding markers is enabled, run tool and export are disabled.
+        */
 
         // clear result image
         this.map.overlayMapTypes.clear();
+        // revert to transparent logo
         $('#maplogo').attr('src','static/map_logo_square_alt.png');
         // clear all markers
         for (var i = 0; i < this.sourceMarkers.length; i++) {
@@ -174,10 +155,8 @@ access_tool.App.prototype.setState = function(statename) {
         }
         this.queryMarkers = [];
 
-        // enable drawing manager and file chooser
-        //this.drawingManager.setMap(this.map);
+        // enable drawing of new markers and file chooser
         this.toggleDrawing(true);
-
         $('.tool-controls .loadcsv').prop("disabled", false);
 
         // disable download, runner, and reset buttons
@@ -185,9 +164,10 @@ access_tool.App.prototype.setState = function(statename) {
         $('.tool-controls .run').prop("disabled", true);
         $('.tool-controls .clear').prop("disabled", true);
 
-        // show section for loading points
+        // show UI section for loading points
         $('.tool-controls .markercontrols').removeClass('hidden');
-        // hide sections for export and run
+        // hide UI sections for export and run
+        $('.tool-controls .legendsection').addClass('hidden');
         $('.tool-controls .exportcontrols').addClass('hidden');
         $('.tool-controls .maincontrols').addClass('hidden');
 
@@ -204,19 +184,29 @@ access_tool.App.prototype.setState = function(statename) {
     }
 
     else if (statename === 'toolReady') {
+         /* READY TO RUN
+           If at least one marker has been added, we can run the tool.
+           Adding markers is still enabled, run tool and export are disabled.
+        */
         if (this.sourceMarkers.length == 0) {
             // check in case we were called from csv loader but it was unsuccessful
             return;
         }
+        // TODO we should check if we've got max number of markers
         // enable tool runner
         $('.tool-controls .run').prop("disabled", false);
-        // enable reset
+        // enable reset to clear them
         $('.tool-controls .clear').prop("disabled", false);
         $('.tool-controls .maincontrols').removeClass('hidden');
-
     }
 
     else if (statename === 'toolRunning') {
+         /* REQUEST MADE
+           As soon as we initiate the request, lock down the UI to prevent adding or removing markers,
+           so that the map when it loads will reflect the state of the markers. All controls disabled.
+           This state will only exist until the mapid response is received from the server - it doesn't persist
+           while tiles are loading.
+        */
         // disable all buttons
         $('.tool-controls .run').prop("disabled", true);
         $('.tool-controls .clear').prop("disabled", true);
@@ -230,12 +220,17 @@ access_tool.App.prototype.setState = function(statename) {
         for (var i = 0; i < this.sourceMarkers.length; i++) {
             this.sourceMarkers[i].draggable = false;
         }
-
+        // hide the drawing and running control sections
         $('.tool-controls .markercontrols').addClass('hidden');
         $('.tool-controls .maincontrols').addClass('hidden');
     }
 
     else if (statename === 'resultReady') {
+         /* RESPONSE RECEIVED
+           A cost path map request has been made and accepted. Tiles will be loading asynchronously.
+           Clicking the map now initiates an identify-type query and a listener enables or disables export
+           depending on how far the map is zoomed.
+        */
         // enable reset button
         $('.tool-controls .clear').prop("disabled", false);
         // enable result query
@@ -256,14 +251,17 @@ access_tool.App.prototype.setState = function(statename) {
         // show the div with the export launcher in, but check the zoom before actually
         // enabling the button
         $('.tool-controls .exportcontrols').removeClass('hidden');
+        $('.tool-controls .legendsection').removeClass('hidden');
+        // replace the MAP logo with a non-transparent one as it looks bad against the dark map colours
         $('#maplogo').attr('src','static/map_logo_square_alt_noxpar.png');
     }
     this.currentState = statename;
-
     this.checkExportable();
 };
 
 access_tool.App.prototype.checkZoomOkToExport = function(){
+    // since the underlying data are in lat/lon coords, we have to talk in square degress, ugh, to
+    // figure out the number of pixels we'll be asking for.
     var extent = this.map.getBounds().toSpan();
     if ((extent.lat() * extent.lng()) > access_tool.App.MAX_EXPORT_SQ_DEG){
         return false;
@@ -277,15 +275,19 @@ access_tool.App.prototype.checkExportable = function(){
     // enable export only if the extent of the view, which clips the output, is small enough
     if (this.currentState === 'resultReady'){
         if (this.checkZoomOkToExport()){
-             $('.tool-controls .export').prop("disabled", false).prop("title", "Click to open the export dialog");
-             $('.exportModal .exportFire').prop("disabled", false).prop("title", "Click to export the current map to your Google Drive");
+             $('.tool-controls .export').prop("disabled", false).prop("title",
+                 "Click to open the export dialog");
+             $('.exportModal .exportFire').prop("disabled", false).prop("title",
+                 "Click to export the current map to your Google Drive");
         }
         else {
-             $('.tool-controls .export').prop("disabled", true).prop("title", "Zoom in further to export");
+             $('.tool-controls .export').prop("disabled", true).prop("title",
+                 "Zoom in further to export");
              $('.exportModal .exportFire').prop("disabled", true);
         }
     }
 };
+
 
 /**
  * Sets the alert with the given name to have the class and content given.
@@ -294,6 +296,7 @@ access_tool.App.prototype.checkExportable = function(){
  * @param {string} cls The type of the alert for Bootstrap CSS styling
  * @param {string} line1 The first line of the alert text
  * @param {string=} opt_line2 The second line of the alert text
+ * @param {number=} opt_timeout A time in milliseconds after which the alert should fade out, optional.
  */
 access_tool.App.prototype.setAlert = function(name, cls, line1, opt_line2, opt_timeout){
     var alert;
@@ -349,18 +352,12 @@ access_tool.App.prototype.findAlert = function(name) {
 
 
 /**
- * Event handler for when a marker is added by the drawingmanager, maintains
- * markers in a separate array which we will use to run tool
- * @param marker
+ * We are not using a drawing manager as we only want to draw markers, so just do this on the
+ * map's own click event
+ * @param {boolean} activate Should the marker-draw listener be active or not
  */
-access_tool.App.prototype.handleNewMarker = function(marker){
-  this.sourceMarkers.push(marker);
-  this.setState('toolReady');
-};
-
 access_tool.App.prototype.toggleDrawing = function(activate){
     if (activate){
-
         this.drawListener = google.maps.event.addListener(
             this.map,
             "click",
@@ -380,11 +377,12 @@ access_tool.App.prototype.toggleDrawing = function(activate){
                 }
             }).bind(this)
         );
-        this.map.cur
+        this.map.setOptions({draggableCursor:'crosshair'});
     }
     else {
         google.maps.event.removeListener(this.drawListener);
         this.drawListener = null;
+        this.map.setOptions({draggableCursor:null});
     }
 }
 /** Reads a CSV file and loads the lat/long or x/y columns to sourceMarkers on the map.
@@ -396,7 +394,6 @@ access_tool.App.prototype.toggleDrawing = function(activate){
 access_tool.App.prototype.createCsvMarkers = function(e){
     // https://developers.google.com/kml/articles/csvtokml
     // http://sideapps.com/code-tips-and-tricks/add-markers-to-google-map-from-csv/
-
   var csvFilePath = e.target.files[0];
   var reader = new FileReader();
   reader.onload = function(e){
@@ -489,7 +486,7 @@ access_tool.App.prototype.createCsvMarkers = function(e){
     }
   }.bind(this);
   reader.readAsText(csvFilePath);
-}
+};
 
 /**
  * Runs the accessibility map search, based on the current points on the map.
@@ -545,43 +542,11 @@ access_tool.App.prototype.runToolPost = function(){
  * Gets the accessibility value for a given location. As the server-side is stateless,
  * this means we run the accessibility search again with the same points as before, using
  * a different endpoint that returns the value at a single location rather than an image/map
- * @param e
+ * @param e - the event that triggered this, which should be a map click event with a latLng
  */
-access_tool.App.prototype.queryResult = function(e){
-  var sourcepointsJSON = this.getPointsJson();
-  var querypointsJSON = JSON.stringify([{
-    lat: e.latLng.lat(),
-    lng: e.latLng.lng()
-  }]);
-  var newMarker = new google.maps.Marker({
-      position: e.latLng,
-      icon: '/static/icons/information-query-result.png',
-      map: this.map
-  });
-  var infoWindow = new google.maps.InfoWindow({
-      content: "Retrieving value, please wait..."
-  });
-  newMarker.addListener('click', function(){
-      infoWindow.open(newMarker.get('map'), newMarker);
-  });
-  infoWindow.open(newMarker.get('map'), newMarker);
-  this.queryMarkers.push(newMarker);
-  $.getJSON(
-      '/costvalue',
-      {
-          sourcepoints: sourcepointsJSON,
-          querypoints: querypointsJSON
-      },
-      ((function(data){
-          var totalMins = data;
-          var hrs = Math.floor(totalMins / 60.0);
-          var mins = Math.round(totalMins - 60.0*hrs , 1);
-          infoWindow.setContent("Estimated time to nearest source marker is "+
-            hrs + "hrs " + mins + "mins");
-      }).bind(this))
-  )
-};
 access_tool.App.prototype.queryResultPost = function(e){
+  // TODO is there no way of persisting things server side so that a query can be less catastrophically slow?
+  // The points must be unchanged from when the map as displayed was created. Hence disabling the UI.
   var sourcepointsJSON = this.getPointsJson();
   var querypointsJSON = JSON.stringify([{
     lat: e.latLng.lat(),
@@ -634,12 +599,6 @@ access_tool.App.prototype.getPointsJson = function(){
   return JSON.stringify(jsonArr);
 }
 
-access_tool.App.prototype.downloadMap = function(){
-    // Eventually we will need to use batch.Export in the server and save it to Drive
-    // as the image get download url is limited in ability and is deprecated
-    $('#btnDownload').hide();
-    $('#urlDownload').show();
-}
 access_tool.App.prototype.exportMap = function(){
     var filename = this.getFilename();
     var params = {};
@@ -649,13 +608,15 @@ access_tool.App.prototype.exportMap = function(){
     // TODO remove the client / channel stuff
     params.client_id = this.clientId;
     this.setAlert('export-' + filename, 'info',
-        'Export of "' + filename + '" in progress.');
+        'Export of "' + filename + '" in progress.',
+        'Please note the export can take a very long time! Check your google drive for success.');
     access_tool.App.handleRequest(
         $.post('/export', params), null,
         this.setAlert.bind(
             this, 'export-' + filename, 'danger', 'Export failed.')
     );
 };
+
 access_tool.App.prototype.getFilename = function(){
     var userProvidedFilename = $('.filename').val();
     if (userProvidedFilename) {
@@ -665,25 +626,8 @@ access_tool.App.prototype.getFilename = function(){
         return 'Accessibility_Export' + (new Date()).toISOString().replace(/[^0-9]/g, '');
     }
 };
-/**
-* function to show info screen
-* using the info button
- */
-access_tool.App.prototype.showInfo = function() {
 
-   // get infoscreen by id
-   var infoscreen = document.getElementById('general-info');
-
-   // open or close screen
-   if  (infoscreen.style.display === 'none') {
-	infoscreen.style.display = 'block';
-	} else {
-      infoscreen.style.display = 'none';
-    }
-}
 // https://developers.google.com/maps/documentation/javascript/datalayer
-
-
 
 ///////////////////////////////////////////////////////////////////////////////
 //                        Static helpers and constants.                      //

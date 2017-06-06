@@ -84,10 +84,16 @@
                         <button class="run btn btn-primary btn-xs" disabled>Run Tool</button>
                     </div>
 
+                    <div class="input-block legendsection well hidden">
+                        <div class="row">
+                        <div class="instructions col-sm-6">Click the map to query the value at a point.</div>
+                        <div class="col-sm-6"><img class="img-rounded" src="static/Accessibility_Legend_48h.png" height="200"></div>
+                            </div>
+                    </div>
+
                     <div class="input-block exportcontrols well hidden" >
-                        <p class="instructions">Click the map to query the value at a point.</p>
                         <p class="instructions">
-                            You can also export the map to your Google Drive.
+                            You can export the map to your Google Drive.
                             You can only export a limited area, so zoom in the map until the Export button becomes enabled.
                             You don't need to wait for the images to finish loading on-screen!
                         </p>
@@ -126,8 +132,11 @@
 
               <h3>Instructions</h3>
 
-              <p class="instructions">To enter the locations, you can either click on the map to add points, or you can load a CSV file. If you choose
-              to load a CSV then you must pick a file containing columns called "lat" and "lon", or "x" and "y".</p>
+              <p class="instructions">To enter the locations, you can either click on the map to add points, or you can load a CSV file.
+                  Simply click on the map to add green markers. You can drag them to reposition if you click in the wrong place.</p>
+
+              <p> If you choose to load a CSV then you must pick a file containing columns called "lat" and "lon", or "x" and "y".
+               A maximum of 1000 points can be loaded - you won't be able to reposition these markers.</p>
 
               <p class="instructions">Once the points are added to the map, click Run Tool to calculate the map. Depending on the area, this will take from
               several seconds to several minutes to complete. The map will gradually load in blocks, as the calculations complete.</p>

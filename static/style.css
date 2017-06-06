@@ -76,18 +76,6 @@ isindex {
     margin-bottom: 0;
     display: block;
 }
-/*.access-app .tool-controls {
-    display: flex;
-    flex-flow: row nowrap;
-    align-items: flex-end;
-}
-.access-app .inputs{
-    flex-grow: 8;
-}
-.access-app .inputs,
-.access-app .btn.export{
-    display: inline-block;
-}*/
 
 .access-app .btn-file{
     position: relative;
@@ -109,27 +97,7 @@ isindex {
     cursor: inherit;
     display: block;
 }
-/*
-.access-app .input-block {
-    display: block;
-    margin-top: 7px;
-}
-.access-app .input-block.region{
-    height: 22px;
-}
-.access-app .input-block-label{
-    font-weight: bold;
-    display: inline-block;
-    width: 65px;
-}
-.access-app .filename{
-    width: 80%;
-    display: inline;
-}
-.access-app .access-app{
-    flex-grow: 1;
-}
-*/
+
 .access-app .alerts .alert {
       margin-top: 8px;
       margin-bottom: 0;
@@ -155,7 +123,6 @@ isindex {
   padding-left: 1ex;
 }
 
-/* continue here line 67 of demo css*/
 .powered-by-ee {
   position: absolute;
   z-index: 1;
