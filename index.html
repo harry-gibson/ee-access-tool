@@ -86,14 +86,20 @@
 
                     <div class="input-block legendsection well hidden">
                         <div class="row">
-                        <div class="instructions col-sm-6">Click the map to query the value at a point.</div>
-                        <div class="col-sm-6"><img class="img-rounded" src="static/Accessibility_Legend_48h.png" height="200"></div>
+                            <div class="col-sm-5"><img class="img-rounded" src="static/Accessibility_Legend_48h.png" height="200"></div>
+                            <div class="instructions col-sm-7">
+                                The search has been initiated and the map tiles will gradually load as they are calculated.
+                                The map will be generated out to a maximum time of 48 hours, or a maximum distance of 1000km,
+                                from the closest input point. <br/>
+                                Click the map to query the value at a point.</div>
+
                             </div>
                     </div>
 
                     <div class="input-block exportcontrols well hidden" >
                         <p class="instructions">
-                            You can export the map to your Google Drive.
+                            For further analysis, you can export the map to your Google Drive. <br/>
+                            This feature is under development!
                             You can only export a limited area, so zoom in the map until the Export button becomes enabled.
                             You don't need to wait for the images to finish loading on-screen!
                         </p>
@@ -120,33 +126,108 @@
               <h2 class="text-center">Interactive Accessibility Tool</h2>
           </div>
           <div class="modal-body">
-              <p>An accessibility map shows the estimated time that it would take to travel from any location
-                  to the nearest point of interest.</p>
-              <p>The global map of accessibility
-                  <a href="http://dev.roadlessforest.eu/map.html">
-                  published recently</a> showed the estimated time to travel from any point on earth to the nearest
-                  city of 50,000 or more inhabitants.</p>
-              <p>However, this tool uses the same underlying datasets to allow you to create new accessibility maps,
-                  to a location or locations of your choice, while you wait. The map will show the estimated travel
-                  time from all locations to the nearest (in time) point of interest that you have entered.</p>
+              <ul class="nav nav-tabs">
+                  <li class="active"><a data-toggle="tab" href="#info1">Introduction</a> </li>
+                  <li><a data-toggle="tab" href="#info2">About the data</a> </li>
+                  <li><a data-toggle="tab" href="#info3">About this tool</a> </li>
+                  <li><a data-toggle="tab" href="#info4">Instructions</a> </li>
+              </ul>
+              <div class="tab-content">
+                  <div id="info1" class="tab-pane fade in active">
 
-              <h3>Instructions</h3>
+                      <h3>Accessibility Mapping</h3>
+                      <p>An accessibility map shows the estimated time that it would take to travel from any location
+                          to the nearest point of interest.</p>
+                      <p>The calculations behind such a map are similar to those used in a satellite navigation system
+                      to work out the time taken to travel between two points. However in this case, the algorithms divide
+                          the surface of the earth (or a more local area) into regularly-spaced points called pixels, and
+                          then work out for every pixel the time taken to travel to the nearest one of a set of destination
+                          points.
+                      </p>
+                      <p>
+                          The result is a continuous "surface" showing the estimated time to get from any location to
+                          whichever point of interest is nearest - this is a map of "accessibility" to those points.
+                      </p>
+                      <p>
+                          Published maps of global accessibility including the new version
+                          <a href="http://dev.roadlessforest.eu/map.html">
+                          published recently</a> show the estimated time to travel from any point on earth to the nearest
+                          densely-populated area (specifically, a town or city above a certain size).
+                          This gives a useful general proxy for the ease with which
+                          people in rural areas can access services and resources which are more likely to be found in
+                          more urban areas. </p>
+                      <p> However the published maps do not give specific information about the accessibility to other sets
+                          of points of interest. This new tool uses the same underlying datasets to allow you to create
+                          new accessibility maps, to a location or locations of your choice, while you wait.
+                      </p>
+                      <p>
+                          The map will show the estimated travel
+                          time from all locations to the nearest (in time) point of interest that you have entered.</p>
+                      <p>
+                          In this way the new accessibility maps you can create, showing the time required to travel to
+                          locations such as healthcare facilities, can help to identify areas most likely to benefit
+                          from new investments in infrastructure.
+                      </p>
+                  </div>
+                  <div id="info2" class="tab-pane fade">
+                      <h3>About the data</h3>
+                      <p>
+                          A satellite navigation system contains information about the roads, including estimates of how long
+                          each piece of road might take to travel along. However its information is largely limited to the road
+                          network itself. For the continuous surface that is produced by accessibility mapping, we need to know
+                          how long it takes to travel over any given part of the Earth's surface, regardless of whether or not a
+                          road is present.
+                      </p>
+                      <p>
+                          Therefore, as well as roads, we need maps of things such as waterways and lakes, types of land cover,
+                          and the slope of the land. Based on each of these we allocate an estimated speed of travel to
+                          every pixel on earth, according to the type of road (where a road is present), and according to the type
+                          of land or water cover (where there are no roads).
+                      </p>
+                      <p>
+                          The original Global Accessibility Map was developed by Andrew Nelson at the Joint Research Centre (JRC)
+                          for the World Bank's World Development Report in 2009. This map was based on the best-available data
+                          reflective of the world in the year 2000, and has been extensively used in the health community.
+                      </p>
+                      <p>
+                          Since the original map was produced, the quality and coverage of freely-available mapping data worldwide
+                          has improved enormously, in particular through the OpenStreetMap project.
+                      </p>
+                      <p>
+                          The new Global Accessibility Map, as well as this web tool, make use of the wealth of newly-mapped
+                          roads that are available in the OpenStreetMap database. Furthermore, thanks to a unique collaboration
+                          with Google, we have also been able to use information derived from the Google roads database, improving
+                          the coverage of information where OpenStreetMap remains sparse.
+                      </p>
+                      <p>
+                          Taken together, the datasets behind the new accessibility maps cover almost 5 times more roads than were
+                          mapped in the original 2009 map - largely thanks to the inclusion of many more minor roads than were
+                          present in the data available in 2009.
+                      </p>
+                  </div>
+                  <div id="info3" class="tab-pane fade">
 
-              <p class="instructions">To enter the locations, you can either click on the map to add points, or you can load a CSV file.
-                  Simply click on the map to add green markers. You can drag them to reposition if you click in the wrong place.</p>
+                  </div>
+                  <div id="info4" class="tab-pane fade">
+                      <h3>Instructions</h3>
 
-              <p> If you choose to load a CSV then you must pick a file containing columns called "lat" and "lon", or "x" and "y".
-               A maximum of 1000 points can be loaded - you won't be able to reposition these markers.</p>
+                      <p class="instructions">To enter the locations, you can either click on the map to add points, or you can load a CSV file.
+                          Simply click on the map to add green markers. You can drag them to reposition if you click in the wrong place.</p>
 
-              <p class="instructions">Once the points are added to the map, click Run Tool to calculate the map. Depending on the area, this will take from
-              several seconds to several minutes to complete. The map will gradually load in blocks, as the calculations complete.</p>
+                      <p> If you choose to load a CSV then you must pick a file containing columns called "lat" and "lon", or "x" and "y".
+                       A maximum of 1000 points can be loaded - you won't be able to reposition these markers.</p>
 
-              <p class="instructions">Once finished, uou can export the generated map to your Google Drive account,
-                  so you can obtain a local copy for use in a GIS program of your choice.
-                  To enable the "export" button you will need to zoom in the map, as the export can only be run for a limited
-                  area (whilst the tool is in development). Pan the map to display the area of interest for export before
-                  pressing the button. Please note that due to the
-                  on-demand processing nature of Google Earth Engine, the export may take as long as several hours to complete!</p>
+                      <p class="instructions">Once the points are added to the map, click Run Tool to calculate the map. Depending on the area, this will take from
+                      several seconds to several minutes to complete. The map will gradually load in blocks, as the calculations complete.</p>
+
+                      <p class="instructions">Once finished, uou can export the generated map to your Google Drive account,
+                          so you can obtain a local copy for use in a GIS program of your choice.
+                          To enable the "export" button you will need to zoom in the map, as the export can only be run for a limited
+                          area (whilst the tool is in development). Pan the map to display the area of interest for export before
+                          pressing the button. Please note that due to the
+                          on-demand processing nature of Google Earth Engine, the export may take as long as several hours to complete!</p>
+                  </div>
+              </div>
 
               <form>
                   <div class="checkbox">
