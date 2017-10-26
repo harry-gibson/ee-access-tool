@@ -139,7 +139,10 @@ access_tool.App.prototype.setState = function(statename) {
            Initial state or after hitting the clear map button.
            Adding markers is enabled, run tool and export are disabled.
         */
-
+        if (this._timeoutID){
+            window.clearTimeout(this._timeoutID);
+            this._timeoutID = null;
+        }
         // clear result image
         this.map.overlayMapTypes.clear();
         // revert to transparent logo
@@ -250,8 +253,14 @@ access_tool.App.prototype.setState = function(statename) {
         );
         // show the div with the export launcher in, but check the zoom before actually
         // enabling the button
-        $('.tool-controls .exportcontrols').removeClass('hidden');
-        $('.tool-controls .legendsection').removeClass('hidden');
+        // Only show it after a delay so we don't show a legend ages before the map tiles actually load
+        // Filthy hack - prefer to show when tiles actually start loading, but haven't got that working yet
+
+        this._timeoutID = window.setTimeout(function(){
+            $('.tool-controls .exportcontrols').removeClass('hidden');
+            $('.tool-controls .legendsection').removeClass('hidden');
+        }.bind(this), 10000);
+
         // replace the MAP logo with a non-transparent one as it looks bad against the dark map colours
         $('#maplogo').attr('src','static/map_logo_square_alt_noxpar.png');
     }
@@ -273,12 +282,21 @@ access_tool.App.prototype.checkZoomOkToExport = function(){
 
 access_tool.App.prototype.checkExportable = function(){
     // enable export only if the extent of the view, which clips the output, is small enough
+    var exportDisabled = true;
     if (this.currentState === 'resultReady'){
+
         if (this.checkZoomOkToExport()){
              $('.tool-controls .export').prop("disabled", false).prop("title",
                  "Click to open the export dialog");
-             $('#exportModal .exportFire').prop("disabled", false).prop("title",
-                 "Click to export the current map to your Google Drive");
+             if (exportDisabled){
+                 // temporary override until it's working properly!
+                 $('#exportModal .exportFire').prop("disabled", true).prop("title",
+                 "Export functionality is not yet available - coming soon");
+             }
+             else {
+                 $('#exportModal .exportFire').prop("disabled", false).prop("title",
+                     "Click to export the current map to your Google Drive");
+             }
         }
         else {
              $('.tool-controls .export').prop("disabled", true).prop("title",
@@ -499,7 +517,7 @@ access_tool.App.prototype.runToolPost = function(){
         sourcepoints: this.getPointsJson(),
         mapBounds: JSON.stringify(this.map.getBounds())
     };
-    this.setAlert('toolRunning', "info", "Map query in progress");
+    this.setAlert('toolRunning', "info", "Submitting accessibility map request");
     access_tool.App.handleRequest(
         $.post('/costpath', params),
         ((function (data) {
@@ -523,8 +541,10 @@ access_tool.App.prototype.runToolPost = function(){
               }
             }).bind(this))
         );
+
         this.setState('resultReady');
-        this.setAlert('toolRunning', 'success', "Search ok - loading tiles", null, 5000);
+        this.setAlert('toolRunning', 'info', "Map request successful - loading tiles",
+            "Request has been submitted to Earth Engine - the map will load as it is generated.", 15000);
         // don't yet have anywhere to put the download link so disable for now
         //$('#btnDownload').prop("disabled", false);
       }).bind(this)),
@@ -647,6 +667,7 @@ access_tool.App.prototype.getFilename = function(){
  * @return {google.maps.ImageMapType} A Google Maps ImageMapType object for the
  *     EE map with the given ID and token.
  */
+
 access_tool.App.getEeMapLayer = function(eeMapId, eeToken) {
   // return null if no ee overlay map is required (will then just make a plain googlemap)
   if (eeMapId === "None" || eeToken === "None"){
@@ -663,6 +684,51 @@ access_tool.App.getEeMapLayer = function(eeMapId, eeToken) {
   };
   return new google.maps.ImageMapType(eeMapOptions);
 };
+access_tool.App.pendingUrls = [];
+access_tool.App._getEeMapLayer_Tracked = function(eeMapId, eeToken) {
+  // return null if no ee overlay map is required (will then just make a plain googlemap)
+  if (eeMapId === "None" || eeToken === "None"){
+    return null;
+  }
+  // here we attempt to implement the solution proposed here https://stackoverflow.com/a/7355063
+  // to track when tiles are loaded, so we could be more informative to the user with the slow EE
+  // load times....
+  var overlay = new google.maps.ImageMapType({
+      getTileUrl: function(tile, zoom) {
+          var url = access_tool.App.EE_URL + '/map/';
+          url += [eeMapId, zoom, tile.x, tile.y].join('/');
+          url += '?token=' + eeToken;
+          access_tool.App.pendingUrls.push(url);
+          if (access_tool.App.pendingUrls.length ===1){
+              $(overlay).trigger("overlay-busy");
+          };
+          return url;
+        },
+        tileSize: new google.maps.Size(256, 256)
+  });
+  $(overlay).bind("overlay-idle", function(){
+      console.log("overlay is idle");
+  });
+  $(overlay).bind("overlay-busy", function(){
+      console.log("overlay is busy");
+  });
+  overlay.baseGetTile = overlay.getTile;
+  // this override doesn't seem to work, node never has any children, so pendingUrls
+  // just keeps growing
+  overlay.getTile = function(tileCoord, zoom, ownerDocument){
+      var node = overlay.baseGetTile(tileCoord, zoom, ownerDocument);
+      $("img", node).one("load", function () {
+         var index = $.inArray(this.__src__, access_tool.App.pendingUrls);
+         access_tool.App.pendingUrls.splice(index, 1);
+         if(access_tool.App.pendingUrls.length===0){
+             $(overlay).trigger("overlay-idle");
+         }
+      });
+      return node;
+  };
+  return overlay;
+};
+
 
 /**
  * Handles the success or failure of an ajax request.

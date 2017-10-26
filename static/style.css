@@ -136,7 +136,9 @@ isindex {
   width: 300px;
 }
 
-
+.comingsoon {
+    color: gray!important;
+}
 /* Small screens. */
 
 @media (max-width: 900px) {
