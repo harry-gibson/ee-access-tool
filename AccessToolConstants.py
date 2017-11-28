@@ -15,7 +15,7 @@ SEARCH_MAX_TARGETS = 1000
 # NOT IMPLEMENTED
 MAX_EXTENT_WSEN = [-180, -60, 180, 70]
 #
-URL_FETCH_TIMEOUT = 120
+URL_FETCH_TIMEOUT = 120000 # this has changed from sec to ms in a recent upgrade
 
 # The band name created by the cumulativeCost function: do not alter
 ACCESS_BAND = "cumulative_cost"
