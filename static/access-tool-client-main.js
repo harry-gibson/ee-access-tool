@@ -15,7 +15,7 @@ var app;
 access_tool.boot = function(eeMapId, eeToken, channelToken, channelClientId){
   google.load('maps', '3',
       {
-        'other_params': 'key=AIzaSyAKG7sWP6OzVg2l5De0pkVNgCwz-DwNxl8&libraries=drawing'
+        'other_params': 'key=AIzaSyBkOap6kiM4Qss3s_ImM3ALqz5KDoejAoM&libraries=drawing'
       });
   //google.load('jquery', '1');
 
@@ -282,7 +282,7 @@ access_tool.App.prototype.checkZoomOkToExport = function(){
 
 access_tool.App.prototype.checkExportable = function(){
     // enable export only if the extent of the view, which clips the output, is small enough
-    var exportDisabled = true;
+    var exportDisabled = false;
     if (this.currentState === 'resultReady'){
 
         if (this.checkZoomOkToExport()){
