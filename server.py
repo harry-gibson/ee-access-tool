@@ -10,8 +10,8 @@ import random
 import time
 import string
 from google.appengine.api import urlfetch, users, taskqueue, channel
-import lib.oauth2client.appengine
-import lib.oauth2client.client
+import oauth2client.contrib.appengine
+import oauth2client.client
 import os
 # from AccessToolConstants import *
 from AccessToolStaticHelpers import *
@@ -24,18 +24,29 @@ OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive'
 
 # Login for the app service account's drive space: the image gets exported to here
 # in the first instance then copied to the user's drive
-APP_CREDENTIALS = lib.oauth2client.client.SignedJwtAssertionCredentials(
-    config.EE_ACCOUNT,
-    open(config.EE_PRIVATE_KEY_FILE, 'rb').read(),
-    OAUTH_SCOPE
+# oauth2client pre-version 2
+#APP_CREDENTIALS = lib.oauth2client.client.SignedJwtAssertionCredentials(
+#    config.EE_ACCOUNT,
+#    open(config.EE_PRIVATE_KEY_FILE, 'rb').read(),
+#    OAUTH_SCOPE
+#)
+from oauth2client.service_account import ServiceAccountCredentials
+#APP_CREDENTIALS = ServiceAccountCredentials.from_p12_keyfile(
+# config.EE_ACCOUNT, config.EE_PRIVATE_KEY_FILE, scopes=[OAUTH_SCOPE]
+#)
+# or for json key - this is supposedly prefererred but it doesn't, y'know, work
+APP_CREDENTIALS = ServiceAccountCredentials.from_json_keyfile_name(
+ config.EE_PRIVATE_KEY_JSON_FILE, scopes=[OAUTH_SCOPE]
 )
+
+
 # Drive helper authenticated with the service account to give access to the drive
 # space associated with that account
 #APP_DRIVE_HELPER = drive.DriveHelper(APP_CREDENTIALS)
 
 # This triggers the user's Drive permissions request flow when used as a
 # decorator on a request handler function
-OAUTH_DECORATOR = lib.oauth2client.appengine.OAuth2Decorator(
+OAUTH_DECORATOR = oauth2client.contrib.appengine.OAuth2Decorator(
     client_id=config.OAUTH_CLIENT_ID,
     client_secret=config.OAUTH_CLIENT_SECRET,
     scope=OAUTH_SCOPE
