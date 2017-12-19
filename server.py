@@ -1,6 +1,6 @@
 import json
 import lib.ee as ee
-import lib.drive as drive
+import drive
 import webapp2
 import jinja2
 import config
@@ -39,6 +39,10 @@ APP_CREDENTIALS = ServiceAccountCredentials.from_json_keyfile_name(
  config.EE_PRIVATE_KEY_JSON_FILE, scopes=[OAUTH_SCOPE]
 )
 
+# Create a Drive helper to access the user's Google Drive.
+tmp_check = oauth2client.contrib.appengine.StorageByKeyName(
+    oauth2client.contrib.appengine.CredentialsModel,
+    "hello", 'credentials').get()
 
 # Drive helper authenticated with the service account to give access to the drive
 # space associated with that account
@@ -110,6 +114,7 @@ class MainHandler(webapp2.RequestHandler):
     either set to point to a rendered version of the friction surface or to 'None',
     in which case the js code will not create an overlay on top of the googlemap """
 
+    @OAUTH_DECORATOR.oauth_required
     def get(self, path=''):
         client_id = GetUniqueString()
         template_values = {
@@ -297,7 +302,10 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         """
         # TODO channel API is deprecated and will be removed in Oct2017 so replace this
         params['filename'] = filename
-        channel.send_message(client_id, json.dumps(params))
+        try:
+            channel.send_message(client_id, json.dumps(params))
+        except Exception as e:
+            logging.info("Channel API failed to send message %s" % json.dumps(params))
 
     def _GiveFilesToUser(self, temp_file_prefix, email, user_id, filename):
         """Moves the files with the prefix to the user's Drive folder.
@@ -326,8 +334,8 @@ class ExportRunnerHandler(webapp2.RequestHandler):
             APP_DRIVE_HELPER.GrantAccess(f['id'], email)
 
         # Create a Drive helper to access the user's Google Drive.
-        user_credentials = lib.oauth2client.appengine.StorageByKeyName(
-            lib.oauth2client.appengine.CredentialsModel,
+        user_credentials = oauth2client.contrib.appengine.StorageByKeyName(
+            oauth2client.contrib.appengine.CredentialsModel,
             user_id, 'credentials').get()
         user_drive_helper = drive.DriveHelper(user_credentials)
 
