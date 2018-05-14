@@ -29,3 +29,6 @@ EE_CREDENTIALS = ee.ServiceAccountCredentials(EE_ACCOUNT, EE_PRIVATE_KEY_JSON_FI
 # oauth config for access-mapper project
 OAUTH_CLIENT_ID = '170429793209-0sfrkq47739b443os6cidt6dtbg02iki.apps.googleusercontent.com'
 OAUTH_CLIENT_SECRET = 'suHQy8orERy9bdP9IHzd5L20'
+
+APP_SENDER_ADDRESS = "donotreply@access-mapper.appspotmail.com"
+APP_STORAGE_BUCKET = "access-mapper"

@@ -38,10 +38,10 @@ $(window).on('load',function(){
  * @param mapLayer
  * @constructor
  */
-access_tool.App = function(mapLayer, channelToken, channelClientId) {
+access_tool.App = function(mapLayer) {
     this.map = this.createMap(mapLayer);
-    this.clientId = channelClientId;
-    this.channel = new goog.appengine.Channel(channelToken);
+    //this.clientId = channelClientId;
+    //this.channel = new goog.appengine.Channel(channelToken);
 
     //    this.handleNewMarker.bind(this));
     this.sourceMarkers = [];
@@ -295,7 +295,7 @@ access_tool.App.prototype.checkExportable = function(){
              }
              else {
                  $('#exportModal .exportFire').prop("disabled", false).prop("title",
-                     "Click to export the current map to your Google Drive");
+                     "Click to export the current map to a GeoTIFF file");
              }
         }
         else {

@@ -9,7 +9,7 @@ import logging
 import random
 import time
 import string
-from google.appengine.api import urlfetch, users, taskqueue, channel
+from google.appengine.api import urlfetch, users, taskqueue, channel, mail
 import oauth2client.contrib.appengine
 import oauth2client.client
 import os
@@ -40,9 +40,9 @@ APP_CREDENTIALS = ServiceAccountCredentials.from_json_keyfile_name(
 )
 
 # Create a Drive helper to access the user's Google Drive.
-tmp_check = oauth2client.contrib.appengine.StorageByKeyName(
-    oauth2client.contrib.appengine.CredentialsModel,
-    "hello", 'credentials').get()
+#tmp_check = oauth2client.contrib.appengine.StorageByKeyName(
+#    oauth2client.contrib.appengine.CredentialsModel,
+#    "hello", 'credentials').get()
 
 # Drive helper authenticated with the service account to give access to the drive
 # space associated with that account
@@ -50,11 +50,11 @@ tmp_check = oauth2client.contrib.appengine.StorageByKeyName(
 
 # This triggers the user's Drive permissions request flow when used as a
 # decorator on a request handler function
-OAUTH_DECORATOR = oauth2client.contrib.appengine.OAuth2Decorator(
-    client_id=config.OAUTH_CLIENT_ID,
-    client_secret=config.OAUTH_CLIENT_SECRET,
-    scope=OAUTH_SCOPE
-)
+#OAUTH_DECORATOR = oauth2client.contrib.appengine.OAuth2Decorator(
+#    client_id=config.OAUTH_CLIENT_ID,
+#    client_secret=config.OAUTH_CLIENT_SECRET,
+#    scope=OAUTH_SCOPE
+#)
 
 ee.Initialize(config.EE_CREDENTIALS)
 ee.data.setDeadline(URL_FETCH_TIMEOUT)
@@ -92,7 +92,7 @@ class DataHandler(webapp2.RequestHandler):
         """Processes a POST request and returns a JSON-encodable result."""
         raise NotImplementedError()
 
-    @OAUTH_DECORATOR.oauth_required
+    #@OAUTH_DECORATOR.oauth_required
     def Handle(self, handle_function):
         """Responds with the result of the handle_function or errors, if any."""
         # Note: The fetch timeout is thread-local so must be set separately
@@ -114,7 +114,7 @@ class MainHandler(webapp2.RequestHandler):
     either set to point to a rendered version of the friction surface or to 'None',
     in which case the js code will not create an overlay on top of the googlemap """
 
-    @OAUTH_DECORATOR.oauth_required
+    #@OAUTH_DECORATOR.oauth_required
     def get(self, path=''):
         client_id = GetUniqueString()
         template_values = {
@@ -259,9 +259,11 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         # Create and start the task.
         task = ee.batch.Export.image(
             image=costImage,
-            description='Earth Engine Demo Export',
+            description='Accessibilty Mapper Export '+temp_file_prefix,
             config={
-                'driveFileNamePrefix': temp_file_prefix,
+                'outputBucket': "access-mapper", #The name of a Cloud Storage bucket for the export.
+                'outputPrefix': temp_file_prefix,
+                #'driveFileNamePrefix': temp_file_prefix,
                 'maxPixels': EXPORT_MAX_PIXELS,
                 'scale': NATIVE_RESOLUTION,
                 'region': arrRegion
@@ -274,88 +276,41 @@ class ExportRunnerHandler(webapp2.RequestHandler):
             logging.info('Polling for task (id: %s).', task.id)
             time.sleep(TASK_POLL_FREQUENCY)
 
-        def _SendMessage(message):
-            logging.info('Sent to client: ' + json.dumps(message))
-            self._SendMessageToClient(client_id, filename, message)
-
-        # Make a copy (or copies) in the user's Drive if the task succeeded.
         state = task.status()['state']
         if state == ee.batch.Task.State.COMPLETED:
             logging.info('Task succeeded (id: %s).', task.id)
             try:
-                link = self._GiveFilesToUser(temp_file_prefix, email, user_id, filename)
+                link = self._GetExportedFileLink(temp_file_prefix)
+                self._EmailLinkToUser(link, email, user_id)
                 # Notify the user's browser that the export is complete.
-                _SendMessage({'link': link})
             except Exception as e:  # pylint: disable=broad-except
-                _SendMessage({'error': 'Failed to give file to user: ' + str(e)})
+                pass  #_SendMessage(json.dumps({'error': 'Failed to give file to user: ' + str(e)}))
         else:
-            _SendMessage({'error': 'Task failed (id: %s).' % task.id})
+            pass  # _SendMessage({'error': 'Task failed (id: %s).' % task.id})
 
+    def _EmailLinkToUser(self, link, email, user_id):
+        fromAddr = config.APP_SENDER_ADDRESS
+        toAddr = email
+        link = self._GetExportedFileLink(temp_file_prefix)
+        subject = "Your Accessibility Map export"
+        body="Hi there," \
+             "Your export from the Malaria Atlas Project Accessibilily Mapping tool has completeded successfully." \
+             "" \
+             "Please click here to retrieve your exported map in GeoTIFF format. " \
+             + link + \
+             "Note that this link will remain active for 48 hours, after which time the output data will be deleted " \
+             "and you would have to re-run your search."
+        mail.send_mail(sender=fromAddr,
+                       to=toAddr,
+                       subject=subject,
+                       body=body)
 
-    def _SendMessageToClient(self, client_id, filename, params):
-        """Sends a message to the client using the Channel API.
+    def _GetExportedFileLink(self, temp_file_prefix):
+        #list files matching temp_file_prefix in config.APP_STORAGE_BUCKET bucket
+        #grant access to the one
+        # get and return link to it
+        return ""
 
-        Args:
-          client_id: The ID of the client to message.
-          filename: The name of the exported file the message is about.
-          params: The params to send in the message (as a Dictionary).
-        """
-        # TODO channel API is deprecated and will be removed in Oct2017 so replace this
-        params['filename'] = filename
-        try:
-            channel.send_message(client_id, json.dumps(params))
-        except Exception as e:
-            logging.info("Channel API failed to send message %s" % json.dumps(params))
-
-    def _GiveFilesToUser(self, temp_file_prefix, email, user_id, filename):
-        """Moves the files with the prefix to the user's Drive folder.
-
-        Copies and then deletes the source files from the app's Drive.
-
-        Args:
-          temp_file_prefix: The prefix of the temp files in the service
-              account's Drive.
-          email: The email address of the user to give the files to.
-          user_id: The ID of the user to give the files to.
-          filename: The name to give the files in the user's Drive.
-
-        Returns:
-          A link to the files in the user's Drive.
-        """
-
-        # Create (and thus, authenticate) the drive helper object here rather than
-        # as a global, otherwise, the export is so slow that it times out and gets a 401
-        APP_DRIVE_HELPER = drive.DriveHelper(APP_CREDENTIALS)
-        files = APP_DRIVE_HELPER.GetExportedFiles(temp_file_prefix)
-
-        # Grant the user write access to the file(s) in the app service
-        # account's Drive.
-        for f in files:
-            APP_DRIVE_HELPER.GrantAccess(f['id'], email)
-
-        # Create a Drive helper to access the user's Google Drive.
-        user_credentials = oauth2client.contrib.appengine.StorageByKeyName(
-            oauth2client.contrib.appengine.CredentialsModel,
-            user_id, 'credentials').get()
-        user_drive_helper = drive.DriveHelper(user_credentials)
-
-        # Copy the file(s) into the user's Drive.
-        if len(files) == 1:
-            file_id = files[0]['id']
-            copied_file_id = user_drive_helper.CopyFile(file_id, filename)
-            trailer = 'open?id=' + copied_file_id
-        else:
-            trailer = ''
-            for f in files:
-                # The titles of the files include the coordinates separated by a dash.
-                coords = '-'.join(f['title'].split('-')[-2:])
-                user_drive_helper.CopyFile(f['id'], filename + '-' + coords)
-
-        # Delete the file from the service account's Drive.
-        for f in files:
-            APP_DRIVE_HELPER.DeleteFile(f['id'])
-
-        return 'https://drive.google.com/' + trailer
 
 # Define the routing from URL paths to request handler types in this file
 # Routing is defined as a WSGIApplication object called access_app, and this
@@ -365,6 +320,5 @@ access_app = webapp2.WSGIApplication([
     ('/costvalue', ImageValueHandler),
     ('/exportrunner', ExportRunnerHandler), # internal use only
     ('/export', ExportHandler), # user hook to export data
-    ('/', MainHandler),
-    (OAUTH_DECORATOR.callback_path, OAUTH_DECORATOR.callback_handler()),
+    ('/', MainHandler)
 ])

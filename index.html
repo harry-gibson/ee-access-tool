@@ -97,7 +97,7 @@
 
                     <div class="input-block exportcontrols well hidden" >
                         <p class="instructions">
-                            For further analysis, you can export the map to your Google Drive. <br/>
+                            For further analysis, you can export the map to a GeoTIFF file that you can download. <br/>
                             This feature is under development!
                             You can only export a limited area, so zoom in the map until the Export button becomes enabled.
                             You don't need to wait for the images to finish loading on-screen!
@@ -334,18 +334,20 @@
                   <h2 class="text-center">Export result map</h2>
               </div>
               <div class="modal-body">
-                  <p>EXPORT FUNCTIONALITY IS NOT YET AVAILABLE - CHECK BACK SOON</p>
+                  <p>EXPORT MAP</p>
               </div>
               <div class="modal-body comingsoon">
-                  <p>You can export the map as it is currently shown on screen to a file in your Google Drive.</p>
+                  <p>You can export the map as it is currently shown on screen to a GeoTIFF file.</p>
                   <p>The map export will be limited to the area currently shown on the map, so pan the
                   map to the area you're interested in before beginning the export. You can currently only export a limited
                   area, so if you zoom out too far then the export button will be disabled.</p>
                   <p>The export will take a while to run - anything up to several hours!</p>
+                  <p>We request your email address so that we can email you a link to the file when the export completes -
+                  your email address will not be stored nor used for any other purpose.</p>
 
                 <div class="input-block well-sm">
-                        <span class="input-block-label">Filename:</span>
-                        <input type="text" name="filename" class="filename form-control" placeholder="default: Access_Map_Export_<datetime>">
+                        <span class="input-block-label">Email address:</span>
+                        <input type="text" name="filename" class="filename form-control" placeholder="default: my@email.address.com">
                 </div>
                   <button class="exportFire btn btn-primary" disabled>Export</button>
                   <button class="btn btn-default btn-sm pull-right" data-dismiss="modal">Close</button>
