@@ -12,7 +12,7 @@ var app;
  * @param {string} eeMapId The Earth Engine map ID to show initially, can be "None".
  * @param {string} eeToken The Earth Engine map token.
 */
-access_tool.boot = function(eeMapId, eeToken, channelToken, channelClientId){
+access_tool.boot = function(eeMapId, eeToken){
   google.load('maps', '3',
       {
         'other_params': 'key=AIzaSyBkOap6kiM4Qss3s_ImM3ALqz5KDoejAoM&libraries=drawing'
@@ -21,7 +21,7 @@ access_tool.boot = function(eeMapId, eeToken, channelToken, channelClientId){
 
   google.setOnLoadCallback(function(){
     var mapLayer = access_tool.App.getEeMapLayer(eeMapId, eeToken);
-    app = new access_tool.App(mapLayer, channelToken, channelClientId);
+    app = new access_tool.App(mapLayer);
   });
 };
 
@@ -38,10 +38,8 @@ $(window).on('load',function(){
  * @param mapLayer
  * @constructor
  */
-access_tool.App = function(mapLayer, channelToken, channelClientId) {
+access_tool.App = function(mapLayer) {
     this.map = this.createMap(mapLayer);
-    this.clientId = channelClientId;
-    this.channel = new goog.appengine.Channel(channelToken);
 
     //    this.handleNewMarker.bind(this));
     this.sourceMarkers = [];
@@ -295,7 +293,7 @@ access_tool.App.prototype.checkExportable = function(){
              }
              else {
                  $('#exportModal .exportFire').prop("disabled", false).prop("title",
-                     "Click to export the current map to your Google Drive");
+                     "Click to export the current map to a GeoTIFF file");
              }
         }
         else {
@@ -620,21 +618,30 @@ access_tool.App.prototype.getPointsJson = function(){
 }
 
 access_tool.App.prototype.exportMap = function(){
-    var filename = this.getFilename();
+    //var filename = this.getFilename();
+    var email = this.getEmail();
     var params = {};
-    params.filename = filename;
+    //params.filename = filename;
+    params.email = email;
     params.region = JSON.stringify(this.map.getBounds());
     params.sourcepoints = this.getPointsJson();
-    // TODO remove the client / channel stuff
-    params.client_id = this.clientId;
-    this.setAlert('export-' + filename, 'info',
-        'Export of "' + filename + '" in progress.',
-        'Please note the export can take a very long time! Check your google drive for success.');
+    this.setAlert('export-' + email, 'info',
+        //'Export of "' + filename + '" in progress.',
+        'Export of map in progress. ',
+        'Please note the export can take a very long time! We will email you when it is complete.');
     access_tool.App.handleRequest(
         $.post('/export', params), null,
         this.setAlert.bind(
-            this, 'export-' + filename, 'danger', 'Export failed.')
+            this, 'export-' + email, 'danger', 'Export failed.')
     );
+
+};
+
+access_tool.App.prototype.getEmail = function(){
+    var emailAdd = $('.emailField').val();
+    if (emailAdd){ // TODO validate here?? or in bootstrap prior to this
+        return emailAdd;
+    }
 };
 
 access_tool.App.prototype.getFilename = function(){

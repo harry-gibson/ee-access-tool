@@ -9,52 +9,11 @@ import logging
 import random
 import time
 import string
-from google.appengine.api import urlfetch, users, taskqueue, channel
-import oauth2client.contrib.appengine
-import oauth2client.client
+from google.appengine.api import urlfetch, users, taskqueue, mail
 import os
 # from AccessToolConstants import *
 from AccessToolStaticHelpers import *
 
-
-############################## DRIVE LOGIN ####################################
-# Both the app and the user logins are to the Drive scope only
-OAUTH_SCOPE = 'https://www.googleapis.com/auth/drive'
-
-
-# Login for the app service account's drive space: the image gets exported to here
-# in the first instance then copied to the user's drive
-# oauth2client pre-version 2
-#APP_CREDENTIALS = lib.oauth2client.client.SignedJwtAssertionCredentials(
-#    config.EE_ACCOUNT,
-#    open(config.EE_PRIVATE_KEY_FILE, 'rb').read(),
-#    OAUTH_SCOPE
-#)
-from oauth2client.service_account import ServiceAccountCredentials
-#APP_CREDENTIALS = ServiceAccountCredentials.from_p12_keyfile(
-# config.EE_ACCOUNT, config.EE_PRIVATE_KEY_FILE, scopes=[OAUTH_SCOPE]
-#)
-# or for json key - this is supposedly prefererred but it doesn't, y'know, work
-APP_CREDENTIALS = ServiceAccountCredentials.from_json_keyfile_name(
- config.EE_PRIVATE_KEY_JSON_FILE, scopes=[OAUTH_SCOPE]
-)
-
-# Create a Drive helper to access the user's Google Drive.
-tmp_check = oauth2client.contrib.appengine.StorageByKeyName(
-    oauth2client.contrib.appengine.CredentialsModel,
-    "hello", 'credentials').get()
-
-# Drive helper authenticated with the service account to give access to the drive
-# space associated with that account
-#APP_DRIVE_HELPER = drive.DriveHelper(APP_CREDENTIALS)
-
-# This triggers the user's Drive permissions request flow when used as a
-# decorator on a request handler function
-OAUTH_DECORATOR = oauth2client.contrib.appengine.OAuth2Decorator(
-    client_id=config.OAUTH_CLIENT_ID,
-    client_secret=config.OAUTH_CLIENT_SECRET,
-    scope=OAUTH_SCOPE
-)
 
 ee.Initialize(config.EE_CREDENTIALS)
 ee.data.setDeadline(URL_FETCH_TIMEOUT)
@@ -92,12 +51,10 @@ class DataHandler(webapp2.RequestHandler):
         """Processes a POST request and returns a JSON-encodable result."""
         raise NotImplementedError()
 
-    @OAUTH_DECORATOR.oauth_required
     def Handle(self, handle_function):
         """Responds with the result of the handle_function or errors, if any."""
         # Note: The fetch timeout is thread-local so must be set separately
         # for each incoming request.
-        # TODO maybe move the oauth_required decorator to only the export handler
         urlfetch.set_default_fetch_deadline(URL_FETCH_TIMEOUT)
         try:
             response = handle_function()
@@ -114,14 +71,14 @@ class MainHandler(webapp2.RequestHandler):
     either set to point to a rendered version of the friction surface or to 'None',
     in which case the js code will not create an overlay on top of the googlemap """
 
-    @OAUTH_DECORATOR.oauth_required
     def get(self, path=''):
         client_id = GetUniqueString()
+        email = users.get_current_user().email()[0],
+
         template_values = {
             'eeMapId': "None"
             ,'eeToken': "None"
-            , 'channelToken': channel.create_channel(client_id)
-            , 'channelClientId': client_id
+            ,'userEmail': email
         }
         if USE_BACKDROP:
             eeFrictionMapId = GetFrictionMapId()
@@ -209,7 +166,10 @@ class ExportRunnerHandler(webapp2.RequestHandler):
     Adapted from the EE export-to-drive sample. This handler is configured in app.yaml
     to only be available to admin users, which includes internal appengine requests.
     Thus, it can't be called externally, only from the ExportHandler handler (in
-    response to a user request to /export)."""
+    response to a user request to /export).
+
+    This has now been modified to export to a cloud storage bucket, not a user's Drive account,
+    bypassing the need for users to authenticate"""
 
     def post(self):
         """Exports an image for the year and region, gives it to the user.
@@ -218,13 +178,11 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         process.
 
         HTTP Parameters:
-          email: The email address of the user who initiated this task.
-          filename: The final filename of the file to create in the user's Drive.
-          client_id: The ID of the client (for the Channel API).
-          task: The pickled task to poll.
-          temp_file_prefix: The prefix of the temp file in the service account's
-              Drive.
-          user_id: The ID of the user who initiated this task.
+          region: the map extent to export for, should be set from the client viewport
+          sourcepoints: the accessibility-to locations from the map at time of export
+          email: The email address to send the link to on completed export.
+          filename: The final filename of the file to create (TODO).
+
         """
 
         # Note that the response from this is only seen by the task queue service, there
@@ -232,18 +190,17 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         # That is why we use the channel api to get a message back, and replacing it needs
         # some thought.
 
-        # At present this works fine if we are exporting a pre-existing asses such as the friction
+        # At present this works fine if we are exporting a pre-existing assets such as the friction
         # surface. However for the on-the-fly accessibility map it is catastrophically slow to the
-        # extent that it times out unless you do a really small area.
+        # extent that it times out with auto-scaling unless you do a really small area.
 
         requestRegion = self.request.get('region')
         arrRegion = jsonRegionToArrayCoords(requestRegion)
+        # TODO re-add filename box and then add code to rename the exported file, avoiding conflict
         filename = self.request.get('filename')
-        client_id = self.request.get('client_id')
         email = self.request.get('email')
-        user_id = self.request.get('user_id')
 
-        # Get the image to export, i.e. run the cost mapping with the points
+        # Get the image to export, i.e. (re)run the cost mapping with the points
         sourcePts = unicode(self.request.get('sourcepoints'))
         eeSourcePts = jsonPtsToFeatureColl(sourcePts)
         srcImage = paintPointsToImage(eeSourcePts)
@@ -251,111 +208,65 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         #costImage = ee.Image(FRICTION_SURFACE)
         #image = GetExportableImage(_GetImage(), region)
 
-        # Use a unique prefix to identify the exported file.
+        # Use a unique prefix to identify the exported file. If we want a user specified filename then
+        # we'll have to think about how we protect access so one can't overwrite another and much faff
         temp_file_prefix = GetUniqueString()
-
-        # todo implement exporting a set region only
-        #logging.info(eeRectRegion)
-        # Create and start the task.
-        task = ee.batch.Export.image(
+        # Create and start the task. NB ee.batch.export.image({}) didn't seem to work in that the
+        # file was always exported as 0000000000.0000000000.tif
+        task = ee.batch.Export.image.toCloudStorage(
             image=costImage,
-            description='Earth Engine Demo Export',
-            config={
-                'driveFileNamePrefix': temp_file_prefix,
-                'maxPixels': EXPORT_MAX_PIXELS,
-                'scale': NATIVE_RESOLUTION,
-                'region': arrRegion
-            })
+            description='Accessibilty Mapper Export '+temp_file_prefix,
+            bucket="access-mapper.appspot.com",
+            fileNamePrefix=temp_file_prefix,
+            maxPixels=EXPORT_MAX_PIXELS,
+            scale=NATIVE_RESOLUTION,
+            region=arrRegion
+        )
         task.start()
-        logging.info('Started EE task (id: %s).', task.id)
+        logging.info('Started EE task (id: %s) exporting to prefix %s', task.id, temp_file_prefix)
 
         # Wait for the task to complete (taskqueue auto times out after 10 mins).
         while task.active():
             logging.info('Polling for task (id: %s).', task.id)
             time.sleep(TASK_POLL_FREQUENCY)
 
-        def _SendMessage(message):
-            logging.info('Sent to client: ' + json.dumps(message))
-            self._SendMessageToClient(client_id, filename, message)
-
-        # Make a copy (or copies) in the user's Drive if the task succeeded.
         state = task.status()['state']
         if state == ee.batch.Task.State.COMPLETED:
             logging.info('Task succeeded (id: %s).', task.id)
             try:
-                link = self._GiveFilesToUser(temp_file_prefix, email, user_id, filename)
-                # Notify the user's browser that the export is complete.
-                _SendMessage({'link': link})
+                # Notify the user that it's complete
+                link = self._GetExportedFileLink(temp_file_prefix)
+                self._EmailLinkToUser(link, email)
             except Exception as e:  # pylint: disable=broad-except
-                _SendMessage({'error': 'Failed to give file to user: ' + str(e)})
+                logging.info('Error in file handover ' + str(e))
+                #_SendMessage(json.dumps({'error': 'Failed to give file to user: ' + str(e)}))
         else:
-            _SendMessage({'error': 'Task failed (id: %s).' % task.id})
+            pass  # _SendMessage({'error': 'Task failed (id: %s).' % task.id})
 
+    def _EmailLinkToUser(self, link, email):
+        fromAddr = config.APP_SENDER_ADDRESS
+        toAddr = email
+        subject = "Your Accessibility Map export"
+        body="Hi there,\n\n" \
+             "Your export from the Malaria Atlas Project Accessibility Mapping tool has completed successfully.\n\n" \
+             "Please click here to retrieve your exported map in GeoTIFF format. \n\n" \
+             + link + \
+             "\n\nNote that this link will remain active for 48 hours, after which time the output data will be deleted " \
+             "and you would have to re-run your search."
+        mail.send_mail(sender=fromAddr,
+                       to=toAddr,
+                       subject=subject,
+                       body=body)
 
-    def _SendMessageToClient(self, client_id, filename, params):
-        """Sends a message to the client using the Channel API.
+    def _GetExportedFileLink(self, temp_file_prefix):
+        #list files matching temp_file_prefix in config.APP_STORAGE_BUCKET bucket
+        #grant access to the one
+        # get and return link to it
+        # TODO rename the file to something specific to the user?
+        return ("https://storage.googleapis.com/ "+
+                config.APP_STORAGE_BUCKET +
+                temp_file_prefix + ".tif")
 
-        Args:
-          client_id: The ID of the client to message.
-          filename: The name of the exported file the message is about.
-          params: The params to send in the message (as a Dictionary).
-        """
-        # TODO channel API is deprecated and will be removed in Oct2017 so replace this
-        params['filename'] = filename
-        try:
-            channel.send_message(client_id, json.dumps(params))
-        except Exception as e:
-            logging.info("Channel API failed to send message %s" % json.dumps(params))
-
-    def _GiveFilesToUser(self, temp_file_prefix, email, user_id, filename):
-        """Moves the files with the prefix to the user's Drive folder.
-
-        Copies and then deletes the source files from the app's Drive.
-
-        Args:
-          temp_file_prefix: The prefix of the temp files in the service
-              account's Drive.
-          email: The email address of the user to give the files to.
-          user_id: The ID of the user to give the files to.
-          filename: The name to give the files in the user's Drive.
-
-        Returns:
-          A link to the files in the user's Drive.
-        """
-
-        # Create (and thus, authenticate) the drive helper object here rather than
-        # as a global, otherwise, the export is so slow that it times out and gets a 401
-        APP_DRIVE_HELPER = drive.DriveHelper(APP_CREDENTIALS)
-        files = APP_DRIVE_HELPER.GetExportedFiles(temp_file_prefix)
-
-        # Grant the user write access to the file(s) in the app service
-        # account's Drive.
-        for f in files:
-            APP_DRIVE_HELPER.GrantAccess(f['id'], email)
-
-        # Create a Drive helper to access the user's Google Drive.
-        user_credentials = oauth2client.contrib.appengine.StorageByKeyName(
-            oauth2client.contrib.appengine.CredentialsModel,
-            user_id, 'credentials').get()
-        user_drive_helper = drive.DriveHelper(user_credentials)
-
-        # Copy the file(s) into the user's Drive.
-        if len(files) == 1:
-            file_id = files[0]['id']
-            copied_file_id = user_drive_helper.CopyFile(file_id, filename)
-            trailer = 'open?id=' + copied_file_id
-        else:
-            trailer = ''
-            for f in files:
-                # The titles of the files include the coordinates separated by a dash.
-                coords = '-'.join(f['title'].split('-')[-2:])
-                user_drive_helper.CopyFile(f['id'], filename + '-' + coords)
-
-        # Delete the file from the service account's Drive.
-        for f in files:
-            APP_DRIVE_HELPER.DeleteFile(f['id'])
-
-        return 'https://drive.google.com/' + trailer
 
 # Define the routing from URL paths to request handler types in this file
 # Routing is defined as a WSGIApplication object called access_app, and this
@@ -365,6 +276,5 @@ access_app = webapp2.WSGIApplication([
     ('/costvalue', ImageValueHandler),
     ('/exportrunner', ExportRunnerHandler), # internal use only
     ('/export', ExportHandler), # user hook to export data
-    ('/', MainHandler),
-    (OAUTH_DECORATOR.callback_path, OAUTH_DECORATOR.callback_handler()),
+    ('/', MainHandler)
 ])

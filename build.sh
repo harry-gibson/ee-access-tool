@@ -30,7 +30,7 @@ BuildDep () {
                  git checkout "$3" .
                  ;;
         "pypi" ) echo "Pip: Installing $2..."
-                 pip install -t "$TEMP_DIR" "$2"=="$3"
+                 pip install -t "$TEMP_DIR" "$2"=="$3" --user --prefix= --system
                  ;;
         *      )
                  echo "ERROR: Unrecognized source type. Specifiy 'git' or 'pypi'."
