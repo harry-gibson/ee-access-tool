@@ -1,4 +1,4 @@
-/** User interface styles for the Trendy Lights app. */
+/** User interface styles for the Accesibility Tool app. */
 
 .template {
   display: none;
@@ -6,7 +6,7 @@
 
 /* Shared across all screen sizes. */
 
-.overall h1 {
+.access-app h1 {
   font-family: 'Roboto Condensed', sans-serif;
   position: absolute;
   z-index: 1;
@@ -14,43 +14,120 @@
   color: white;
   text-shadow: 0px 0px 20px black;
 }
+.access-app h2 {
+  font-family: 'Roboto Condensed', sans-serif;
+  z-index: 1;
+  margin: 0px;
+  color: rebeccapurple;
+  text-shadow:  0px 0px 2px gray;
+}
+.access-app h3{
+    font-family: 'Roboto Condensed', sans-serif;
+    color:rebeccapurple;
+}
 
 html,
 body,
-.overall,
-.overall .map {
+.access-app,
+.access-app .map {
   height: 100%;
   margin: 0px;
   padding: 0px;
   overflow: hidden;
+
 }
 
-.overall .panel {
-  display: none;
-  position: absolute;
-  z-index: 1;
-  background-color: white;
-  box-shadow: 0px 0px 20px black;
-  font-family: 'Roboto', sans-serif;
-  padding: 10px;
-  box-sizing: border-box;
+body,
+input,
+textarea,
+select,
+button,
+keygen,
+isindex {
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 14px;
 }
 
-.overall .panel h2 {
-  margin: 0px;
+/* todo move to sepearate by screen size*/
+.access-app .ui { /* todo take from floatingpanel*/
+    position: absolute;
+    top: 25%; /*20px;*/
+    left: 10px; /*90px;*/
+    /*width: 470px;*/
+    z-index: 1;
+}
+
+.access-app .panel {
+    border-radius: 2px;
+    background-color: white;
+    padding: 15px;
+    box-shadow: 0px 0px 20px black;
+    overflow: auto;
+    margin-bottom: 0;
+}
+
+.access-app header{
   padding-bottom: 10px;
 }
-
-.overall .panel .details {
-  overflow: hidden;
-  max-height: 500px;
+.access-app .instructions{
+    margin: 0;
+}
+.access-app .intro {
+    margin: 0;
+}
+.access-app .ui h2 {
+    margin-top: 0;
+    margin-bottom: 0;
+    display: block;
 }
 
-.overall .panel .error {
-  display: none;
+.access-app .btn-file{
+    position: relative;
+    overflow: hidden;
+}
+/* fudge for styling a file input button without it having the default "Choose file" text*/
+.access-app .btn-file input[type=file]{
+    position: absolute;
+    top:0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: white;
+    cursor: inherit;
+    display: block;
 }
 
-.overall .powered-by-ee {
+.access-app .alerts .alert {
+      margin-top: 8px;
+      margin-bottom: 0;
+  }
+
+    .access-app .alerts .alert.visible {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 2s linear;
+}
+
+.access-app .alerts .alert {
+  visibility: hidden;
+  opacity: 0;
+  transition: visibility 0s 2s, opacity 2s linear;
+}
+
+.access-app .alerts .alert .line2 {
+  font-style: italic;
+}
+
+.access-app .alerts .multifile {
+  padding-left: 1ex;
+}
+
+.powered-by-ee {
   position: absolute;
   z-index: 1;
   bottom: 10px;
@@ -59,75 +136,67 @@ body,
   width: 300px;
 }
 
-#floating-panel {
-  position: absolute;
-  top: 25%;
-  left:10px;
-  z-index: 5;
-  background-color: #fff;
-  padding: 5px;
-  border: 1px solid #999;
-  text-align: center;
-  font-family: 'Roboto', 'sans-serif';
-  line-height: 30px;
-  padding-left: 10px;
+.comingsoon {
+    color: gray!important;
 }
 /* Small screens. */
 
 @media (max-width: 900px) {
-  .overall h1 {
+  .access-app h1 {
     top: 22px;
     font-size: 37px;
     left: 30px;
   }
 
-  .overall .panel {
+  .access-app .panel {
     width: 100%;
     bottom: 0px;
     height: 50px;
   }
 
-  .overall .panel .details {
+  .access-app .panel .tool-controls {
     visibility: hidden;
     max-height: 400px;
     padding-right: 10px;
   }
 
-  .overall .panel .close {
+  .access-app .panel .close {
     display: none;
   }
 
-  .overall .panel .toggler {
+  .access-app .panel .toggler {
     position: absolute;
     top: 10px;
     right: 10px;
     cursor: pointer;
   }
 
-  .overall .panel.expanded .details  {
+  .access-app .panel.expanded .tool-controls  {
     visibility: visible;
   }
 
-  .overall .panel.expanded {
+  .access-app .panel.expanded {
     height: 278px;
   }
 
-  .overall .powered-by-ee {
+  .access-app .powered-by-ee {
     width: 180px;
   }
+
+
 }
 
 /* Large screens. */
 
 @media (min-width: 900px) {
-  .overall h1 {
+  .access-app h1 {
     left: 40px;
     top: 30px;
     font-size: 56px;
     opacity: .98;
   }
 
-  .overall .panel {
+  .access-app .panel {
     width: 400px;
     left: 40px;
     top: 126px;
@@ -136,14 +205,15 @@ body,
     border-radius: 4px;
   }
 
-  .overall .panel .close {
+  .access-app .panel .close {
     position: absolute;
     top: 14px;
     right: 14px;
     cursor: pointer;
   }
 
-  .overall .panel .toggler {
+  .access-app .panel .toggler {
     display: none;
   }
 }
+.modal-footer {   border-top: 0px; }
