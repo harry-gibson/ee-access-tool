@@ -263,7 +263,7 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         #grant access to the one
         # get and return link to it
         # TODO rename the file to something specific to the user?
-        return ("https://storage.googleapis.com/ "+
+        return ("https://storage.googleapis.com/"+
                 config.APP_STORAGE_BUCKET +
                 temp_file_prefix + ".tif")
 
