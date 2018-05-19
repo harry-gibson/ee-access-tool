@@ -13,6 +13,14 @@ body {
   font-weight: 300;
 }
 
+a, a.link {
+  color: #5e2165;
+}
+
+a:hover {
+  color: #c32729;
+}
+
 h1, h2, h3, h4, h5, h6 {
   text-transform: uppercase;
   font-weight: 300;
@@ -59,7 +67,7 @@ h6 { margin-top: 1.2rem; margin-bottom: 1rem; }
     -o-user-select: none;
     user-select: none;
     background-color: #fafafa;
-    box-shadow: 0px 0px 20px rgba(0,0,0,0.2);
+    border-radius: 5px 0 0 0;
     margin: 0;
 }
 
@@ -122,6 +130,10 @@ hr {
 .btn-primary:hover, .btn-info:hover {
   background-color: #c32729;
   border-color: #c32729;
+}
+.btn.btn-toggle {
+    border: none;
+    background: transparent;
 }
 
 .btn.focus, .btn:focus, .btn-info.focus, .btn-info:focus,
@@ -255,7 +267,7 @@ hr {
     border-radius: 0;
     width: 100%;
     top: auto!important;
-  
+
 }
 
 .card-body {
@@ -329,33 +341,45 @@ footer {
       box-shadow: 0px 0px 15px rgba(0,0,0,0.3);
   }
 
+  .circle-button-container {
+    display: block;
+    position: absolute;
+    top: -43px;
+    right: 0;
+    box-shadow: 0px 0px 15px rgba(0,0,0,0.3);
+    z-index: -1;
+    width: 80px;
+    height: 40px;
+  }
+
   .dragger {
-    background: #fff;
+    background: #fafafa;
     border-radius: 0 5px 0 0;
     display: block;
     font-size: 0.9em;
     padding:  13px 14px 12px;
     position: absolute;
-    top: -43px;
+    top: 0;
     cursor: move;
-    right: -1px;
+    right: 0;
     color: rgba(0,0,0,0.4);
   }
 
   .navbar-toggler {
-  background: #fff;
+  background: #fafafa;
   border-radius: 5px 0 0 0;
   display: block;
   font-size: 0.9em;
-  padding: 12px;
+  padding:  16px 14px 15px;
   position: absolute;
-  top: -43px;
+  top: 0;
   right: 40px;
   color: rgba(0,0,0,0.4);
   }
 
   .circle-button:hover {
-    background-color: #ccc;
+    background-color: #5e2165;
+    color:#fff;
   }
 
   .circle-button {
@@ -366,8 +390,8 @@ footer {
     outline: 0;
   }
   .circle-button:active {
-    background-color: #ddd;
-    color: #999;
+    background-color: #5e2165;
+    color: #fff;
   }
 
   .card-body {
@@ -439,4 +463,91 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#150049', end
   background-position: center center;
   z-index: 1;
   display: block;
+}
+
+/* Modal styles */
+
+.card {
+  border: none;
+  border-radius: 0;
+}
+
+.nav-tabs {
+    border-bottom: none;
+}
+.nav-tabs .nav-item.show .nav-link, .nav-tabs .nav-link.active {
+    background-color: rgba(0,0,0,.03);
+    border: none;
+}
+
+.nav-tabs .nav-item {
+    margin-bottom: -2px;
+}
+
+[data-toggle="collapse"] .fa:before {
+  content: "\f139";
+}
+
+[data-toggle="collapse"].collapsed .fa:before {
+  content: "\f13a";
+}
+
+/* alerts */
+
+.alert {
+  padding: .7143rem 1.071rem;
+  margin-bottom: 1.429rem;
+  border: 1px solid transparent;
+  color: #FFF;
+  border-radius: 0 0 5px 5px;
+}
+
+.alert.alert-square {
+  border-radius: 0;
+}
+
+.alert .close {
+  position: relative;
+}
+
+.alert.alert-dismissable,
+.alert.alert-dismissible {
+  padding-right: 2.5rem
+}
+
+.alert.alert-dismissable .close,
+.alert.alert-dismissible .close {
+  top: -2px;
+  right: -20px;
+  color: inherit;
+}
+
+.alert.alert-primary {
+  background-color: #891d6d;
+  border-color: #891d6d;
+}
+
+.alert.alert-secondary {
+  background-color: #e4ab55;
+  border-color: #e4ab55;
+}
+
+.alert.alert-success {
+  background-color: #e4ab55;
+  border-color: #e4ab55;
+}
+
+.alert.alert-info {
+  background-color: #891d6d;
+  border-color: #891d6d;
+}
+
+.alert.alert-warning {
+  background-color: #c32729;
+  border-color: #c32729;
+}
+
+.alert.alert-danger {
+  background-color: #c32729;
+  border-color: #c32729;
 }
