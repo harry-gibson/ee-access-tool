@@ -638,7 +638,7 @@ access_tool.App.prototype.exportMap = function(){
 };
 
 access_tool.App.prototype.getEmail = function(){
-    var emailAdd = $('.emailField').val();
+    var emailAdd = $('.email').val();
     if (emailAdd){ // TODO validate here?? or in bootstrap prior to this
         return emailAdd;
     }
