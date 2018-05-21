@@ -162,14 +162,14 @@
                     <div class="card-header" id="tab1headingOne">
                       <h5 class="m-1">
                         <button class="btn btn-toggle" data-toggle="collapse" data-target="#tab1collapseOne" aria-expanded="true" aria-controls="tab1collapseOne">
-                          <i class="fa" aria-hidden="true"></i>Accessibility Mapping
+                          <i class="fa" aria-hidden="true"></i>What is Accessibility Mapping?
                         </button>
                       </h5>
                     </div>
 
                     <div id="tab1collapseOne" class="collapse show" aria-labelledby="tab1headingOne" data-parent="#tab1accordion">
                       <div class="card-body">
-                        <p>An <strong>accessibility map</strong> shows the estimated time that it would take to travel from any location to the nearest <strong>point of interest.</strong></p>
+                        <p>An <span class="font-weight-bold">accessibility map</span> shows the estimated time that it would take to travel from any location to the nearest "point of interest".</p>
                         <p>The calculations behind such a map are similar to those used in a satellite navigation system, to work out the time taken to travel between two points. However rather than working out the time taken to travel along a network of roads, in accessibility mapping the algorithms work with a <strong>continuous surface</strong>. They divide the surface of the earth (or a more local area) into regularly-spaced boxes called <strong>pixels</strong>, and then work out for every pixel the time taken to travel from there to the nearest one of a set of destination points.</p>
                         <p>The result is a continuous surface showing the estimated time to get from any location to whichever point of interest is nearest - this is a map of "accessibility" to those points.</p>
                       </div>
@@ -179,17 +179,19 @@
                     <div class="card-header" id="tab1headingTwo">
                       <h5 class="m-1">
                         <button class="btn btn-toggle collapsed" data-toggle="collapse" data-target="#tab1collapseTwo" aria-expanded="false" aria-controls="tab1collapseTwo">
-                          <i class="fa" aria-hidden="true"></i>What's new
+                          <i class="fa" aria-hidden="true"></i>What is this tool?
                         </button>
                       </h5>
                     </div>
                     <div id="tab1collapseTwo" class="collapse" aria-labelledby="tab1headingTwo" data-parent="#tab1accordion">
                       <div class="card-body">
                         <p>Existing, published maps of global accessibility including the new version
-                          <a href="http://dev.roadlessforest.eu/map.html"> published recently</a> show the estimated time to travel from any point on earth to the nearest <strong>densely-populated area</strong> (specifically, a town or city above a certain size). This gives a useful general proxy for the ease with which people in rural areas can <strong>access services and resources</strong> which are more likely to be found in more urban areas.</p>
-                        <p>However the published maps do not give specific information about the accessibility to other sets of points of interest. This new tool uses the same underlying datasets to allow you to create <strong>new accessibility maps</strong>, to a location or locations of your choice, while you wait.</p>
-                        <p>The map you create will show the estimated travel time from <strong>all locations</strong> (up to a maximum distance of 1000km) to the nearest (in time) point of interest that you have entered.</p>
-                        <p>In this way the new accessibility maps you can create, showing the time required to travel to locations such as healthcare facilities, can help to identify areas <strong>most likely to benefit</strong> from new investments in infrastructure.</p>
+                          <a href="https://map.ox.ac.uk/research-project/accessibility_to_cities/"> published recently</a> show the estimated time to travel from any point on earth to the nearest
+                          <span class="font-weight-bold">densely-populated area</span> (specifically, a town or city above a certain size). These maps give
+                          a useful general proxy for the ease with which people in rural areas can <span class="font-weight-bold">access services and resources</span>
+                          which are more likely to be found in more urban areas.</p>
+                        <p>However the published maps do not give specific information about the accessibility to other sets of points of interest. This new tool uses the same underlying datasets
+                          to allow you to create <span class="font-weight-bold">new accessibility maps</span>, to a location or locations of your choice.</p>
                       </div>
                     </div>
                   </div>
@@ -212,11 +214,17 @@
 
                     <div id="tab2collapseOne" class="collapse show" aria-labelledby="tab2headingOne" data-parent="#tab2accordion">
                       <div class="card-body">
-                        <p>A satellite navigation system contains a map of <strong>roads</strong>, including estimates of how long each piece of road might take to travel along. However this means it can generally only give information about journeys <strong>along the road network</strong>. To produce a continuous surface of travel time, such as an accessibility map, we need to know how long it takes to travel over <strong>any given part</strong> of the Earth's surface, regardless of whether or not a road is present.</p>
+                        <p>A satellite navigation system contains a map of <span class="font-weight-bold">roads</span>, including estimates of how long each piece of road might take to travel along.
+                          However this means it can generally only give information about journeys <span class="font-weight-bold">along the road network</span>.
+                          To produce a continuous surface of travel time, such as an accessibility map, we need to know how long it takes to travel over <span class="font-weight-bold">any given part</span>
+                          of the Earth's surface, regardless of whether or not a road is present.</p>
                         <p>Therefore, as well as roads, we also take into account maps of things such as
-                          <abbr title="Water can either speed up travel (a boat is faster than walking) or slow it down">waterways and lakes</abbr>, types of<abbr title="For travel on foot, the type of land cover affects how fast people can cross it">land cover</abbr>, and the
-                          <abbr title="Walking up or a down a steep hill might be slower than walking on level ground">slope</abbr> of the land. Based on each of these, we allocate an estimated speed of travel to every pixel on earth, according to the type of road (where one is present), and according to the type of land or water cover (where there are no roads). (We also account for national borders, railways, and elevation in creating the speed estimate).</p>
-                          <p>The result of this processing is a global map called a "<strong>friction surface</strong>". This term illustrates that the data is a map of the "difficulty" of crossing each pixel, which is expressed as an estimated average speed of travel.</p>
+                          <abbr title="Water can either speed up travel (a boat is faster than walking) or slow it down">waterways and lakes</abbr>, types of
+                          <abbr title="For travel on foot, the type of land cover affects how fast people can cross it">land cover</abbr>, and the
+                          <abbr title="Walking up or a down a steep hill might be slower than walking on level ground">slope</abbr> of the land.
+                          Based on each of these, we allocate an estimated speed of travel to every pixel on earth, according to the type of road (where one is present), and according to the type of land or water cover
+                          (where there are no roads). (We also account for national borders, railways, and elevation in creating the speed estimate).</p>
+                          <p>The result of this processing is a global map called a "<span class="font-weight-bold">friction surface</span>". This term illustrates that the data is a map of the "difficulty" of crossing each pixel, which is expressed as an estimated average speed of travel.</p>
                       </div>
                     </div>
                   </div>
@@ -224,16 +232,22 @@
                     <div class="card-header" id="tab2headingTwo">
                       <h5 class="m-1">
                         <button class="btn btn-toggle collapsed" data-toggle="collapse" data-target="#tab2collapseTwo" aria-expanded="false" aria-controls="tab2collapseTwo">
-                          <i class="fa" aria-hidden="true"></i>New Subheading
+                          <i class="fa" aria-hidden="true"></i>Improvements to the data
                         </button>
                       </h5>
                     </div>
                     <div id="tab2collapseTwo" class="collapse" aria-labelledby="tab2headingTwo" data-parent="#tab2accordion">
                       <div class="card-body">
-                        <p>The original Global Accessibility Map was developed by Andrew Nelson at the Joint Research Centre (JRC) for the World Bank's World Development Report in 2009. This <a href="http://forobs.jrc.ec.europa.eu/products/gam/download.php" target="_blank">   <strong>map</strong></a> was based on what was then the best-available data, representaticwe of the world in the year 2000, and has been extensively used in the health community.</p>
-                        <p>Since the original map was produced, the quality and coverage of freely-available mapping data worldwide has improved enormously, in particular through the <a href="https://www.openstreetmap.org" target="_blank">OpenStreetMap</a> project.</p>
-                        <p>The new Global Accessibility Map, as well as this web tool, make use of the wealth of newly-mapped roads that are available in the OpenStreetMap database. Furthermore, thanks to a unique collaboration with Google, we have also been able to use information derived from the Google roads database, improving the coverage of information where OpenStreetMap remains sparse.</p>
-                        <p>Taken together, the datasets behind the new accessibility maps cover almost <strong>5 times more roads</strong> than were mapped in the original 2009 map - largely thanks to the inclusion of many more minor roads than were present in the data available in 2009.</p>
+                        <p>The original Global Accessibility Map was developed by Andrew Nelson at the Joint Research Centre (JRC) for the World Bank's World Development Report in 2009.
+                          This <a href="http://forobs.jrc.ec.europa.eu/products/gam/download.php" target="_blank">   <span class="font-weight-bold">map</span></a> was based on what was then the
+                          best-available data, representative of the world in the year 2000, and has been extensively used in the health community.</p>
+                        <p>Since the original map was produced, the quality and coverage of freely-available mapping data worldwide has improved enormously, in particular through the
+                          <a href="https://www.openstreetmap.org" target="_blank">OpenStreetMap</a> project.</p>
+                        <p>The new Global Accessibility Map, as well as this web tool, make use of the wealth of newly-mapped roads that are available in the OpenStreetMap database.
+                          Furthermore, thanks to a unique collaboration with Google, we have also been able to use information derived from the Google roads database, improving the coverage
+                          of information where OpenStreetMap remains sparse.</p>
+                        <p>Taken together, the datasets behind the new accessibility maps cover almost <span class="font-weight-bold">5 times more roads</span> than were mapped in the original
+                          2009 map - largely thanks to the inclusion of many more minor roads than were present in the data available in 2009.</p>
                       </div>
                     </div>
                   </div>
@@ -256,7 +270,12 @@
 
                     <div id="tab3collapseOne" class="collapse show" aria-labelledby="tab3headingOne" data-parent="#tab3accordion">
                       <div class="card-body">
-                        <p>This tool allows you to create your own accessibility maps, defining the estimated time it takes to travel to points of your own choosing. You may wish to map the accessibility to healthcare facilities, markets, large cities, or any other set of points of interest.</p>
+                        <p>This tool allows you to create your own accessibility maps, defining the estimated time it takes to travel to points of your own choosing.
+                          You may wish to map the accessibility to healthcare facilities, markets, large cities, or any other set of points of interest.</p>
+                        <p>The map you create will show the estimated travel time from <span class="font-weight-bold">all locations</span> (up to a maximum distance of 1000km)
+                          to the nearest (in time) point of interest that you have entered.</p>
+                        <p>In this way the new accessibility maps you can create, showing the time required to travel to locations such as healthcare facilities, can help to identify areas
+                          <span class="font-weight-bold">most likely to benefit</span> from new investments in infrastructure.</p>
                       </div>
                     </div>
                   </div>
@@ -264,15 +283,21 @@
                     <div class="card-header" id="tab3headingTwo">
                       <h5 class="m-1">
                         <button class="btn btn-toggle collapsed" data-toggle="collapse" data-target="#tab3collapseTwo" aria-expanded="false" aria-controls="tab3collapseTwo">
-                          <i class="fa" aria-hidden="true"></i>New Subheading
+                          <i class="fa" aria-hidden="true"></i>Technical Information
                         </button>
                       </h5>
                     </div>
                     <div id="tab3collapseTwo" class="collapse" aria-labelledby="tab3headingTwo" data-parent="#tab3accordion">
                       <div class="card-body">
-                        <p>The tool is powered by <strong>Google Earth Engine</strong>, Google's cloud-based platform for global scale analysis of remote sensing and other types of raster or imagery data.</p>
-                        <p>The recently-published update to the global map of accessibility included a friction surface, described on the previous page, which was used to derive the global map of accessibility to densely-populated areas. This friction surface is stored in the Google Earth Engine platform and this tool uses the same data to generate new accessibility maps interactively, using the Earth Engine computation environment.</p>
-                        <p>The friction surface was generated globally at a resolution of approximately 1km. This means that the smallest "unit of analysis" in the map is 1km (at the equator - less at higher latitudes). For this reason, this tool is intended to help with mapping accessibility at <strong> national to continental</strong> scales. For mapping travel times more locally, a finer resolution of data would be required.</p>
+                        <p>The tool is powered by <a href="https://earthengine.google.com/"><span class="font-weight-bold">Google Earth Engine</span></a>, Google's cloud-based platform
+                          for global scale analysis of remote sensing and other types of raster or imagery data.</p>
+                        <p>The recently-published update to the global map of accessibility included a friction surface, described on the previous page, which was used to derive the global map
+                          of accessibility to densely-populated areas. This friction surface is stored in the Google Earth Engine platform and this tool uses the same data to generate
+                          new accessibility maps interactively, by running a "cost distance" algorithm using the Earth Engine computation environment.</p>
+                        <p>The friction surface was generated globally at a resolution of approximately 1km. This means that the smallest "unit of analysis" in the map is 1km
+                          (at the equator - less at higher latitudes), and the maps you generate using this tool will have the same resolution.
+                          For this reason, this tool is intended to help with mapping accessibility at <span class="font-weight-bold">national to continental</span> scales.
+                          For mapping travel times more locally, a finer resolution of data would be required.</p>
                       </div>
                     </div>
                   </div>
@@ -297,9 +322,14 @@
                       <div class="card-body">
                         <p>To enter the locations, you can either click on the map to add points, or you can load pre-defined points from a <abbr title="Comma Separated Value - tabular data with columns separated by commas">CSV</abbr> file.</p>
                         <p>To add points interactively, simply click on the map to add green markers. If you add a marker in the wrong place by mistake, you can drag it to reposition.</p>
-                        <p>To add points from a CSV file, you first need to create a suitable file. This should contain the latitude and longitude for each point on a separate row, separated by a comma. The first row must specify the column names - "lat" and "lon", or "x" and "y". The values should be in decimal degrees. A maximum of 1000 points can be loaded to the map. </p>
+                        <p>To add points from a CSV file, you first need to create a suitable file. This should contain the latitude and longitude for each point on a separate row, separated by a comma.
+                          The first row must specify the column names - "lat" and "lon", or "x" and "y". The values should be in decimal degrees. A maximum of 1000 points can be loaded to the map. </p>
                         <p>Points loaded from a CSV will show on the map in pink, and you won't be able to reposition these markers. Please note that loading points from a CSV is not available on mobile devices.</p>
-                        <p>Once the points are added to the map, click Run Tool to calculate the accessibility map. This will submit the points you have loaded to Google Earth Engine, which will begin to calculate the map immediately. Depending on the area, this will take from   several seconds to several minutes to complete. The map will gradually load in blocks, as the calculations complete.</p>
+                        <p>Once the points are added to the map, click Run Tool to calculate the accessibility map.
+                          This will submit the points you have loaded to Google Earth Engine, which will begin to calculate the map immediately.
+                          Depending on the area, this will take from several seconds to several minutes to complete. The map will gradually load in blocks, as the calculations complete.
+                          The map is calculated "on-the-fly" so as you pan or zoom to a new area, new parts of the accessibility map will be created and loaded in response.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -313,9 +343,14 @@
                     </div>
                     <div id="tab4collapseTwo" class="collapse" aria-labelledby="tab4headingTwo" data-parent="#tab4accordion">
                       <div class="card-body">
-                        <p>Once finished, you can export the generated map to your Google Drive account, so you can obtain a local copy for use in a GIS program of your choice. The map will be exported in<abbr title="A common format for raster data in GIS systems">GeoTIFF</abbr> format, to the root folder of your Google Drive, using the filename you choose. The values in the exported data give the estimated travel time (in minutes) to the nearest point of interest.</p>
-                        <p>The export functionality is still at the early testing stage! It is very computationally-intensive to run, and may take a long time to complete.</p>
-                        <p>To enable the "export" button you will need to zoom in the map, as the export can only be run for a limited area (whilst the tool is in development). The area exported will correspond to what is shown on the map at the time you press the export button.  Pan the map to display the area of interest for export before pressing the button. Please note that due to the on-demand processing nature of Google Earth Engine, the export may take as long as several hours to complete!</p>
+                        <p>As well as viewing the map here in the browser, you can export it to a file that you can download for use in a GIS program of your choice.
+                          The map will be exported in <abbr title="A common format for raster data in GIS systems">GeoTIFF</abbr> format.
+                          The values in the exported data give the estimated travel time (in minutes) to the nearest point of interest.</p>
+                        <p>The export functionality is very computationally-intensive to run, and may take a long time to complete. For this reason, the tool will ask for your email address
+                        so that we can email you a link to download the exported map when the process is complete.</p>
+                        <p>The export can only be run for a limited area, due to the processing time required, so to enable the "export" button you will need to zoom in the map.
+                          The area exported will correspond to what is shown on the map at the time you press the export button.  Pan the map to display the area of interest for export before pressing the button.
+                          Please note that due to the on-demand processing nature of Google Earth Engine, the export may take as long as several hours to complete!</p>
                       </div>
                     </div>
                   </div>
