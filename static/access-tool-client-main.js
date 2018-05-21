@@ -30,6 +30,7 @@ $(window).on('load',function(){
      if (no_splash !== 'true') {
          $('#infoModal').modal('show');
      }
+     $('.collapse .maincontrol').collapse('show')
     });
 
 /**
@@ -286,6 +287,7 @@ access_tool.App.prototype.checkExportable = function(){
         if (this.checkZoomOkToExport()){
              $('.ui .export').prop("disabled", false).prop("title",
                  "Click to open the export dialog");
+             $('.zoomMoreText').addClass("hidden");
              if (exportDisabled){
                  // temporary override until it's working properly!
                  $('#exportModal .exportFire').prop("disabled", true).prop("title",
@@ -300,6 +302,7 @@ access_tool.App.prototype.checkExportable = function(){
              $('.ui .export').prop("disabled", true).prop("title",
                  "Zoom in further to export");
              $('#exportModal .exportFire').prop("disabled", true);
+             $('.zoomMoreText').removeClass("hidden");
         }
     }
 };

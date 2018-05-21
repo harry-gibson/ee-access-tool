@@ -72,7 +72,7 @@
           </p>
         </header>
 
-        <div class="card-body collapse">
+        <div class="card-body collapse maincontrol">
 
         <div class="tool-controls">
           <div class="inputs">
@@ -111,8 +111,10 @@
 
             <div class="input-block exportcontrols well hidden">
               <p class="instructions">
-                For further analysis, you can export the map to your Google Drive. <br/> This feature is under development! You can only export a limited area, so zoom in the map until the Export button becomes enabled. You don't need to wait for the
-                images to finish loading on-screen!
+                For further analysis, you can export the map to a file you can download.
+                  <br/>
+                  <span class="zoomMoreText">You can only export a limited area, so zoom in the map until the Export button becomes enabled. You don't need to wait for the
+                      images to finish loading on-screen!</span>
               </p>
               <button class="export btn btn-primary btn-sm mt-2 mb-2" data-toggle="modal" data-target="#exportModal" disabled>Export</button>
             </div>
@@ -382,20 +384,20 @@
             <h1 class="modal-title w-100">Export result map</h1>
               <button type="button" class="close" data-dismiss="modal">x</button>
           </div>
-          <div class="modal-body comingsoon">
-            <p>EXPORT FUNCTIONALITY IS NOT YET AVAILABLE - CHECK BACK SOON</p>
-          </hr>
-            <p>You can export the map as it is currently shown on screen to a file in your Google Drive.</p>
-            <p>The map export will be limited to the area currently shown on the map, so pan the map to the area you're interested in before beginning the export. You can currently only export a limited area, so if you zoom out too far then the export button
+          <div class="modal-body">
+            <p>You can export the map as it is currently shown on screen to a GeoTIFF file for use in a GIS program.</p>
+            <p>The map export will be limited to the area currently shown on the map, so pan the map to the area you're interested in before beginning the export.
+                You can currently only export a limited area, so if you zoom out too far then the export button
               will be disabled.</p>
-            <p>The export will take a while to run - anything up to several hours!</p>
+            <p>The export will take a while to run - anything up to several hours! Press Export to begin the process, and we will email you when it is
+                done with a link to download your data - you don't need to keep this page open while it runs.</p>
 
             <div class="input-block well-sm mb-4">
               <span class="input-block-label">Email Address:</span>
               <input type="email" name="email" class="filename form-control" aria-describedby="emailHelp" placeholder="Enter email" required>
               <small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
             </div>
-            <button class="exportFire btn btn-primary mr-2" disabled>Export</button>
+            <button class="exportFire btn btn-primary mr-2" disabled data-dismiss="modal">Export</button>
             <button class="btn btn-primary btn-sm pull-right" data-dismiss="modal">Close</button>
           </div>
 
