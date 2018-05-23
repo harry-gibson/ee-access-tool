@@ -220,7 +220,7 @@ access_tool.App.prototype.setState = function(statename) {
 
         // prevent dragging / alteration of all markers when search is initiated
         for (var i = 0; i < this.sourceMarkers.length; i++) {
-            this.sourceMarkers[i].draggable = false;
+            this.sourceMarkers[i].setDraggable(false);
         }
         // hide the drawing and running control sections
         $('.ui .markercontrols').addClass('hidden');
