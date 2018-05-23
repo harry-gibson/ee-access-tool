@@ -30,7 +30,6 @@ handlers:
 - url: /.*
   script: server.access_app
   secure: always
-  login: required
 
 skip_files:
 - ^(.*/)?#.*#$
