@@ -9,7 +9,7 @@ import logging
 import random
 import time
 import string
-from google.appengine.api import urlfetch, users, taskqueue, mail
+from google.appengine.api import urlfetch,  taskqueue, mail
 import os
 # from AccessToolConstants import *
 from AccessToolStaticHelpers import *
@@ -73,13 +73,14 @@ class MainHandler(webapp2.RequestHandler):
 
     def get(self, path=''):
         client_id = GetUniqueString()
-        email = users.get_current_user().email()[0],
 
         template_values = {
             'eeMapId': "None"
             ,'eeToken': "None"
-            ,'userEmail': email
         }
+        # If we want to initialise the page with an ee map layer already showing then we need to pass the id
+        # of it, and a token for access, to the javascript. We do that by using the template engine to write the
+        # required bits into the HTML page before serving it
         if USE_BACKDROP:
             eeFrictionMapId = GetFrictionMapId()
             template_values['eeMapId'] = eeFrictionMapId['mapid']
@@ -147,15 +148,14 @@ class ImageValueHandler(webapp2.RequestHandler):
 class ExportHandler(DataHandler):
     """A servlet to handle requests for image exports
 
-    Adapted from the EE export-to-drive sample. Submits a task to the default push queue.
+    Adapted from the EE export-to-drive sample. This is called by the client (javascript) and submits a
+    task to the default push queue.
     App engine will then run this task, in the form of submitting a task to the exportrunner
     URL endpoint - the one which actually runs the export."""
     def DoPost(self):
         taskqueue.add(url='/exportrunner', params={
             'filename': self.request.get('filename'),
-            'client_id': self.request.get('client_id'),
-            'email': users.get_current_user().email(),
-            'user_id': users.get_current_user().user_id(),
+            'email': self.request.get('email'),
             'region': self.request.get('region'),
             'sourcepoints': self.request.get('sourcepoints')
         })
@@ -197,7 +197,7 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         requestRegion = self.request.get('region')
         arrRegion = jsonRegionToArrayCoords(requestRegion)
         # TODO re-add filename box and then add code to rename the exported file, avoiding conflict
-        filename = self.request.get('filename')
+        # filename = self.request.get('filename')
         email = self.request.get('email')
 
         # Get the image to export, i.e. (re)run the cost mapping with the points
@@ -262,9 +262,9 @@ class ExportRunnerHandler(webapp2.RequestHandler):
         #list files matching temp_file_prefix in config.APP_STORAGE_BUCKET bucket
         #grant access to the one
         # get and return link to it
-        # TODO rename the file to something specific to the user?
+        # TODO rename the file to something specific to the user? Zip it up with metadata?
         return ("https://storage.googleapis.com/"+
-                config.APP_STORAGE_BUCKET +
+                config.APP_STORAGE_BUCKET + "/" +
                 temp_file_prefix + ".tif")
 
 

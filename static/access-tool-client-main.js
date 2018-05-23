@@ -30,6 +30,7 @@ $(window).on('load',function(){
      if (no_splash !== 'true') {
          $('#infoModal').modal('show');
      }
+     $('.collapse .maincontrol').collapse('show')
     });
 
 /**
@@ -49,8 +50,8 @@ access_tool.App = function(mapLayer) {
     /*
      * CONNECT UI EVENT HANDLERS
      */
-    $('.tool-controls .run').click(this.runToolPost.bind(this));
-    $('.tool-controls .clear').click(
+    $('.ui .run').click(this.runToolPost.bind(this));
+    $('.ui .clear').click(
         (function () {
             this.setState('blank');
         }).bind(this));
@@ -58,14 +59,14 @@ access_tool.App = function(mapLayer) {
 
     //http://markusslima.github.io/bootstrap-filestyle/
     //https://www.abeautifulsite.net/whipping-file-inputs-into-shape-with-bootstrap-3
-    $('.tool-controls .loadcsv').change(this.createCsvMarkers.bind(this));
+    $('.ui .loadcsv').change(this.createCsvMarkers.bind(this));
 
     // expand / collapse the panel on mobile to get it out of the way
     $('.panel .toggler').click((function() {
         $('.panel').toggleClass('expanded');
     }).bind(this));
 
-    $('.tool-controls .showinfo').click(function() {
+    $('.ui .showinfo').click(function() {
         $('#infoModal').modal('show');
     });
 
@@ -158,19 +159,19 @@ access_tool.App.prototype.setState = function(statename) {
 
         // enable drawing of new markers and file chooser
         this.toggleDrawing(true);
-        $('.tool-controls .loadcsv').prop("disabled", false);
+        $('.ui .loadcsv').prop("disabled", false);
 
         // disable download, runner, and reset buttons
-        $('.tool-controls .export').prop("disabled", true).show();
-        $('.tool-controls .run').prop("disabled", true);
-        $('.tool-controls .clear').prop("disabled", true);
+        $('.ui .export').prop("disabled", true).show();
+        $('.ui .run').prop("disabled", true);
+        $('.ui .clear').prop("disabled", true);
 
         // show UI section for loading points
-        $('.tool-controls .markercontrols').removeClass('hidden');
+        $('.ui .markercontrols').removeClass('hidden');
         // hide UI sections for export and run
-        $('.tool-controls .legendsection').addClass('hidden');
-        $('.tool-controls .exportcontrols').addClass('hidden');
-        $('.tool-controls .maincontrols').addClass('hidden');
+        $('.ui .legendsection').addClass('hidden');
+        $('.ui .exportcontrols').addClass('hidden');
+        $('.ui .maincontrols').addClass('hidden');
 
         // disable result querying
         if (this.identifyListener) {
@@ -195,10 +196,10 @@ access_tool.App.prototype.setState = function(statename) {
         }
         // TODO we should check if we've got max number of markers
         // enable tool runner
-        $('.tool-controls .run').prop("disabled", false);
+        $('.ui .run').prop("disabled", false);
         // enable reset to clear them
-        $('.tool-controls .clear').prop("disabled", false);
-        $('.tool-controls .maincontrols').removeClass('hidden');
+        $('.ui .clear').prop("disabled", false);
+        $('.ui .maincontrols').removeClass('hidden');
     }
 
     else if (statename === 'toolRunning') {
@@ -209,10 +210,10 @@ access_tool.App.prototype.setState = function(statename) {
            while tiles are loading.
         */
         // disable all buttons
-        $('.tool-controls .run').prop("disabled", true);
-        $('.tool-controls .clear').prop("disabled", true);
-        $('.tool-controls .export').prop("disabled", true);
-        $('.tool-controls .loadcsv').prop("disabled", true);
+        $('.ui .run').prop("disabled", true);
+        $('.ui .clear').prop("disabled", true);
+        $('.ui .export').prop("disabled", true);
+        $('.ui .loadcsv').prop("disabled", true);
 
         // disable drawing
         this.toggleDrawing(false);
@@ -222,8 +223,8 @@ access_tool.App.prototype.setState = function(statename) {
             this.sourceMarkers[i].draggable = false;
         }
         // hide the drawing and running control sections
-        $('.tool-controls .markercontrols').addClass('hidden');
-        $('.tool-controls .maincontrols').addClass('hidden');
+        $('.ui .markercontrols').addClass('hidden');
+        $('.ui .maincontrols').addClass('hidden');
     }
 
     else if (statename === 'resultReady') {
@@ -233,7 +234,7 @@ access_tool.App.prototype.setState = function(statename) {
            depending on how far the map is zoomed.
         */
         // enable reset button
-        $('.tool-controls .clear').prop("disabled", false);
+        $('.ui .clear').prop("disabled", false);
         // enable result query
         this.identifyListener = google.maps.event.addListener(
             this.map,
@@ -255,8 +256,8 @@ access_tool.App.prototype.setState = function(statename) {
         // Filthy hack - prefer to show when tiles actually start loading, but haven't got that working yet
 
         this._timeoutID = window.setTimeout(function(){
-            $('.tool-controls .exportcontrols').removeClass('hidden');
-            $('.tool-controls .legendsection').removeClass('hidden');
+            $('.ui .exportcontrols').removeClass('hidden');
+            $('.ui .legendsection').removeClass('hidden');
         }.bind(this), 10000);
 
         // replace the MAP logo with a non-transparent one as it looks bad against the dark map colours
@@ -284,8 +285,9 @@ access_tool.App.prototype.checkExportable = function(){
     if (this.currentState === 'resultReady'){
 
         if (this.checkZoomOkToExport()){
-             $('.tool-controls .export').prop("disabled", false).prop("title",
+             $('.ui .export').prop("disabled", false).prop("title",
                  "Click to open the export dialog");
+             $('.zoomMoreText').addClass("hidden");
              if (exportDisabled){
                  // temporary override until it's working properly!
                  $('#exportModal .exportFire').prop("disabled", true).prop("title",
@@ -297,9 +299,10 @@ access_tool.App.prototype.checkExportable = function(){
              }
         }
         else {
-             $('.tool-controls .export').prop("disabled", true).prop("title",
+             $('.ui .export').prop("disabled", true).prop("title",
                  "Zoom in further to export");
              $('#exportModal .exportFire').prop("disabled", true);
+             $('.zoomMoreText').removeClass("hidden");
         }
     }
 };
@@ -618,9 +621,11 @@ access_tool.App.prototype.getPointsJson = function(){
 }
 
 access_tool.App.prototype.exportMap = function(){
+    // Call the /export endpoint which will in turn initialise and call the export runner
     //var filename = this.getFilename();
     var email = this.getEmail();
     var params = {};
+    // params are email, region, sourcepoint, filename; filename is currently not used
     //params.filename = filename;
     params.email = email;
     params.region = JSON.stringify(this.map.getBounds());
@@ -638,7 +643,7 @@ access_tool.App.prototype.exportMap = function(){
 };
 
 access_tool.App.prototype.getEmail = function(){
-    var emailAdd = $('.emailField').val();
+    var emailAdd = $('.email').val();
     if (emailAdd){ // TODO validate here?? or in bootstrap prior to this
         return emailAdd;
     }
