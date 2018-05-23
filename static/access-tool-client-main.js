@@ -621,9 +621,11 @@ access_tool.App.prototype.getPointsJson = function(){
 }
 
 access_tool.App.prototype.exportMap = function(){
+    // Call the /export endpoint which will in turn initialise and call the export runner
     //var filename = this.getFilename();
     var email = this.getEmail();
     var params = {};
+    // params are email, region, sourcepoint, filename; filename is currently not used
     //params.filename = filename;
     params.email = email;
     params.region = JSON.stringify(this.map.getBounds());
