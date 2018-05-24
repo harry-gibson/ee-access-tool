@@ -196,7 +196,7 @@ hr {
 
 /* fudge for styling a file input button without it having the default "Choose file" text*/
 
-.access-app .btn-file input[type=file] {
+.btn-file input[type=file] {
   position: absolute;
   top: 0;
   right: 0;
