@@ -392,13 +392,20 @@
             <p>The export will take a while to run - anything up to several hours! Press Export to begin the process, and we will email you when it is
                 done with a link to download your data - you don't need to keep this page open while it runs.</p>
 
-            <div class="input-block well-sm mb-4">
-              <span class="input-block-label">Email Address:</span>
-              <input type="email" name="email" class="email form-control" aria-describedby="emailHelp" placeholder="Enter email" required>
-              <small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
-            </div>
-            <button class="exportFire btn btn-primary mr-2" disabled data-dismiss="modal">Export</button>
-            <button class="btn btn-primary btn-sm pull-right" data-dismiss="modal">Close</button>
+              <form class="needs-validation" novalidate>
+                <div class="input-block well-sm mb-4">
+
+                    <label for="emailAddress" class="input-block-label">Email Address:</label>
+                    <input type="email" name="email" id="emailAddress" class="email form-control"
+                           aria-describedby="emailHelp" placeholder="Enter email" required>
+                    <div class="valid-feedback">We'll email you at this address when the export completes</div>
+                    <div class="invalid-feedback">Please enter a valid email address</div>
+                    <small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
+
+                </div>
+                <button class="exportFire btn btn-primary mr-2" disabled data-dismiss="modal" type="submit">Export</button>
+                <button class="btn btn-primary btn-sm pull-right" data-dismiss="modal">Close</button>
+              </form>
           </div>
 
         </div>
