@@ -494,6 +494,14 @@ filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#150049', end
   content: "\f13a";
 }
 
+.circle-button-container [data-toggle="collapse"] .fa:before {
+  content: "\f13a";
+}
+
+.circle-button-container [data-toggle="collapse"].collapsed .fa:before {
+  content: "\f139";
+}
+
 /* alerts */
 
 .alert {
