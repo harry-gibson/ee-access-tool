@@ -50,16 +50,38 @@ access_tool.App = function(mapLayer) {
     /*
      * CONNECT UI EVENT HANDLERS
      */
+
+    // tool runner button
     $('.ui .run').click(this.runToolPost.bind(this));
+
+    // clear map button
     $('.ui .clear').click(
         (function () {
             this.setState('blank');
         }).bind(this));
-    $('.modal-dialog .exportFire').click(this.exportMap.bind(this));
 
+    // CSV loader button (file input)
     //http://markusslima.github.io/bootstrap-filestyle/
     //https://www.abeautifulsite.net/whipping-file-inputs-into-shape-with-bootstrap-3
     $('.ui .loadcsv').change(this.createCsvMarkers.bind(this));
+
+    // email field validation (actual validation is done by HTML5 API, this just applies the result
+    $('#emailAddress').on('keyup change', function(){ // we don't .bind this to the app scope
+        var emailform = $(this);
+        if (emailform.is(':invalid')) {
+            emailform.removeClass('is-valid').addClass('is-invalid');
+            emailform.siblings('.invalid-feedback').text(emailform.prop('validationMessage'));
+            $('#exportModal .exportFire').prop("disabled", true);
+        }
+        else{
+            emailform.removeClass('is-invalid').addClass('is-valid');
+            $('#exportModal .exportFire').prop("disabled", false);
+        }
+    });
+
+    // fire the export off it as a button, rely on the button being disabled if not valid
+    // (could do form submit, too)
+    $('.modal-dialog .exportFire').click(this.exportMap.bind(this));
 
     // expand / collapse the panel on mobile to get it out of the way
     $('.panel .toggler').click((function() {
@@ -75,6 +97,7 @@ access_tool.App = function(mapLayer) {
          $('#chkNoShowSplash')[0].checked=true;
     }
 
+    // store user request to not show dialog at boot next time
     $('#infoModal').on('hidden.bs.modal', function(e){
         if ($('#chkNoShowSplash')[0].checked){
             try {
@@ -281,27 +304,16 @@ access_tool.App.prototype.checkZoomOkToExport = function(){
 
 access_tool.App.prototype.checkExportable = function(){
     // enable export only if the extent of the view, which clips the output, is small enough
-    var exportDisabled = false;
     if (this.currentState === 'resultReady'){
 
         if (this.checkZoomOkToExport()){
              $('.ui .export').prop("disabled", false).prop("title",
                  "Click to open the export dialog");
              $('.zoomMoreText').addClass("hidden");
-             if (exportDisabled){
-                 // temporary override until it's working properly!
-                 $('#exportModal .exportFire').prop("disabled", true).prop("title",
-                 "Export functionality is not yet available - coming soon");
-             }
-             else {
-                 $('#exportModal .exportFire').prop("disabled", false).prop("title",
-                     "Click to export the current map to a GeoTIFF file");
-             }
         }
         else {
              $('.ui .export').prop("disabled", true).prop("title",
                  "Zoom in further to export");
-             $('#exportModal .exportFire').prop("disabled", true);
              $('.zoomMoreText').removeClass("hidden");
         }
     }
