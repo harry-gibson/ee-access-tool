@@ -20,8 +20,7 @@ access_tool.boot = function(eeMapId, eeToken){
   //google.load('jquery', '1');
 
   google.setOnLoadCallback(function(){
-    var mapLayer = access_tool.App.getEeMapLayer(eeMapId, eeToken);
-    app = new access_tool.App(mapLayer);
+    app = new access_tool.App(eeMapId, eeToken);
   });
 };
 
@@ -39,10 +38,17 @@ $(window).on('load',function(){
  * @param mapLayer
  * @constructor
  */
-access_tool.App = function(mapLayer) {
-    this.map = this.createMap(mapLayer);
+access_tool.App = function(eeMapId, eeToken) {
+    if (eeMapId && eeToken){
+        // create the map with some pre-existing EE map already showing, e.g. the friction surface
+        mapLayer = this.getEeMapLayer_Tracked(eeMapId, eeToken);
+        this.map = this.createMap(mapLayer);
+    }
+    else{
+        // create the map without any overlays (just the google map)
+        this.map = this.createMap();
+    }
 
-    //    this.handleNewMarker.bind(this));
     this.sourceMarkers = [];
     this.queryMarkers = [];
     this.setState('blank');
@@ -122,7 +128,7 @@ access_tool.App = function(mapLayer) {
  * map rendered, which would normally be an Earth Engine image (created as a
  * google maps overlay using the getEeMapLayer function).
  * The map is anchored to the DOM element with the CSS class 'map'.
- * @param {google.maps.ImageMapType} mapType The map type to include on the map, can be null
+ * @param {google.maps.ImageMapType} mapLayer The map type to include on the map, can be null
  * @return {google.maps.Map} A map instance with the map type rendered.
  */
 access_tool.App.prototype.createMap = function(mapLayer){
@@ -571,7 +577,7 @@ access_tool.App.prototype.updateLoadStatus = function(tilesLeft){
         this.setAlert(myAlertName, 'info', "Tile loading complete", "", 3000);
     }
     else{
-        this.setAlert(myAlertName, 'info', "Map tiles are loading" + tilesLeft.toString() + " tiles left",
+        this.setAlert(myAlertName, 'info', "Map tiles are loading - " + tilesLeft.toString() + " tiles left",
             "(You can run an export before loading finishes)" );
     }
 };
