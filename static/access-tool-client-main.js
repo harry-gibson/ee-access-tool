@@ -162,6 +162,9 @@ access_tool.App.prototype.createMap = function(mapLayer){
  * @param statename
  */
 access_tool.App.prototype.setState = function(statename) {
+    if (this.currentState === statename){
+        return;
+    }
     if (statename === 'blank') {
         /* BLANK MAP
            Initial state or after hitting the clear map button.
@@ -279,15 +282,17 @@ access_tool.App.prototype.setState = function(statename) {
                 this.checkExportable();
             }).bind(this)
         );
+
         // show the div with the export launcher in, but check the zoom before actually
         // enabling the button
-        // Only show it after a delay so we don't show a legend ages before the map tiles actually load
-        // Filthy hack - prefer to show when tiles actually start loading, but haven't got that working yet
-
+        // Show it after a short delay - originally this was a hack so we didn't show a legend
+        // ages before the map tiles actually load, when we weren't tracking the tile loading.
+        // Now just keeping a short additional delay so that the alert and then the legend appear
+        // one after the other
         this._timeoutID = window.setTimeout(function(){
             $('.ui .exportcontrols').removeClass('hidden');
             $('.ui .legendsection').removeClass('hidden');
-        }.bind(this), 10000);
+        }.bind(this), 2000);
 
         // replace the MAP logo with a non-transparent one as it looks bad against the dark map colours
         $('#maplogo').attr('src','static/map_logo_square_alt_noxpar.png');
@@ -550,8 +555,6 @@ access_tool.App.prototype.runToolPost = function(){
               this.map.overlayMapTypes.push(mapLayer);
             }).bind(this))
         );
-
-        this.setState('resultReady');
         this.updateLoadStatus();
         //this.setAlert('toolRunning', 'info', "Map request successful - loading tiles",
         //    "Request has been submitted to Earth Engine - the map will load as it is generated.");
@@ -569,16 +572,26 @@ access_tool.App.prototype.runToolPost = function(){
 
 access_tool.App.prototype.updateLoadStatus = function(tilesLeft){
     var myAlertName = 'toolRunning';
+
     if (tilesLeft === undefined){
         this.setAlert(myAlertName, 'info', "Map request successful - tiles are loading",
             "Request has been submitted to Earth Engine - the map will load as it is generated.")
+        this.nTiles = -1;
     }
     else if (tilesLeft === 0){
         this.setAlert(myAlertName, 'info', "Tile loading complete", "", 3000);
     }
     else{
-        this.setAlert(myAlertName, 'info', "Map tiles are loading - " + tilesLeft.toString() + " tiles left",
-            "(You can run an export before loading finishes)" );
+        // don't trigger state change until the second tile-load event, as it seems to fire first
+        // before any tiles are actually shown
+        if (tilesLeft > this.nTiles){
+            this.nTiles = tilesLeft;
+        }
+        else {
+            this.setState('resultReady');
+            this.setAlert(myAlertName, 'info', "Map tiles are loading - " + tilesLeft.toString() + " tiles left",
+                "(You can run an export before loading finishes)");
+        }
     }
 };
 
