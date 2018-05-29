@@ -540,26 +540,16 @@ access_tool.App.prototype.runToolPost = function(){
             ((function(eeLayer, i){
               var mapId = eeLayer['eeMapId'];
               var mapToken = eeLayer['eeToken'];
-              var mapLayer = access_tool.App.getEeMapLayer(mapId, mapToken);
+              var mapLayer = this.getEeMapLayer_Tracked(mapId, mapToken);
               this.map.overlayMapTypes.push(mapLayer);
-              if (eeLayer.hasOwnProperty('downloadUrl')){
-                this.mapDownloadUrl = eeLayer['downloadUrl'];
-                var urlEl = $("<a></a>");
-                urlEl.attr('href', this.mapDownloadUrl)
-                    .text('Download');
-                $('#urlDownload').html(urlEl);
-              }
-              else {
-                  $('#urlDownload').html('Extent too large!');
-              }
             }).bind(this))
         );
 
         this.setState('resultReady');
-        this.setAlert('toolRunning', 'info', "Map request successful - loading tiles",
-            "Request has been submitted to Earth Engine - the map will load as it is generated.", 15000);
-        // don't yet have anywhere to put the download link so disable for now
-        //$('#btnDownload').prop("disabled", false);
+        this.updateLoadStatus();
+        //this.setAlert('toolRunning', 'info', "Map request successful - loading tiles",
+        //    "Request has been submitted to Earth Engine - the map will load as it is generated.");
+
       }).bind(this)),
         ((function(){
             this.setAlert('toolRunning', 'danger', 'Search failed',
@@ -569,6 +559,21 @@ access_tool.App.prototype.runToolPost = function(){
         }).bind(this))
 
     );
+};
+
+access_tool.App.prototype.updateLoadStatus = function(tilesLeft){
+    var myAlertName = 'toolRunning';
+    if (tilesLeft === undefined){
+        this.setAlert(myAlertName, 'info', "Map request successful - tiles are loading",
+            "Request has been submitted to Earth Engine - the map will load as it is generated.")
+    }
+    else if (tilesLeft === 0){
+        this.setAlert(myAlertName, 'info', "Tile loading complete", "", 3000);
+    }
+    else{
+        this.setAlert(myAlertName, 'info', "Map tiles are loading" + tilesLeft.toString() + " tiles left",
+            "(You can run an export before loading finishes)" );
+    }
 };
 
 /**
@@ -671,87 +676,29 @@ access_tool.App.prototype.getFilename = function(){
     }
 };
 
-// https://developers.google.com/maps/documentation/javascript/datalayer
+access_tool.App.prototype.getEeMapLayer_Tracked = function(eeMapId, eeToken) {
+  // return null if no ee overlay map is required (will then just make a plain googlemap)
+  if (eeMapId === "None" || eeToken === "None"){
+    return null;
+  }
+
+  var layer = new ee.MapLayerOverlay(
+      access_tool.App.EE_URL + "/map",
+      eeMapId, eeToken, {name: "Custom Accessibility Map"}
+  );
+  layer.addTileCallback((function(event){
+      this.updateLoadStatus(event.count);
+  }).bind(this));
+
+
+  return layer;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 //                        Static helpers and constants.                      //
 ///////////////////////////////////////////////////////////////////////////////
 
 // As these are not on the prototype they are "static"
-
-/**
- * Generates a Google Maps map type (or layer) for the passed-in EE map id. See:
- * https://developers.google.com/maps/documentation/javascript/maptypes#ImageMapTypes
- * The mapid and the token will be provided from the python script via the templating
- * engine; if either is set to the string "None" then this function will return null
- * resulting in no overlay to be added. Otherwise, the returned maptype object can be
- * added to the google map as an overlaytype, which happens in prototype.createMap
- * @param {string} eeMapId The Earth Engine map ID.
- * @param {string} eeToken The Earth Engine map token.
- * @return {google.maps.ImageMapType} A Google Maps ImageMapType object for the
- *     EE map with the given ID and token.
- */
-
-access_tool.App.getEeMapLayer = function(eeMapId, eeToken) {
-  // return null if no ee overlay map is required (will then just make a plain googlemap)
-  if (eeMapId === "None" || eeToken === "None"){
-    return null;
-  }
-  var eeMapOptions = {
-    getTileUrl: function(tile, zoom) {
-      var url = access_tool.App.EE_URL + '/map/';
-      url += [eeMapId, zoom, tile.x, tile.y].join('/');
-      url += '?token=' + eeToken;
-      return url;
-    },
-    tileSize: new google.maps.Size(256, 256)
-  };
-  return new google.maps.ImageMapType(eeMapOptions);
-};
-access_tool.App.pendingUrls = [];
-access_tool.App._getEeMapLayer_Tracked = function(eeMapId, eeToken) {
-  // return null if no ee overlay map is required (will then just make a plain googlemap)
-  if (eeMapId === "None" || eeToken === "None"){
-    return null;
-  }
-  // here we attempt to implement the solution proposed here https://stackoverflow.com/a/7355063
-  // to track when tiles are loaded, so we could be more informative to the user with the slow EE
-  // load times....
-  var overlay = new google.maps.ImageMapType({
-      getTileUrl: function(tile, zoom) {
-          var url = access_tool.App.EE_URL + '/map/';
-          url += [eeMapId, zoom, tile.x, tile.y].join('/');
-          url += '?token=' + eeToken;
-          access_tool.App.pendingUrls.push(url);
-          if (access_tool.App.pendingUrls.length ===1){
-              $(overlay).trigger("overlay-busy");
-          };
-          return url;
-        },
-        tileSize: new google.maps.Size(256, 256)
-  });
-  $(overlay).bind("overlay-idle", function(){
-      console.log("overlay is idle");
-  });
-  $(overlay).bind("overlay-busy", function(){
-      console.log("overlay is busy");
-  });
-  overlay.baseGetTile = overlay.getTile;
-  // this override doesn't seem to work, node never has any children, so pendingUrls
-  // just keeps growing
-  overlay.getTile = function(tileCoord, zoom, ownerDocument){
-      var node = overlay.baseGetTile(tileCoord, zoom, ownerDocument);
-      $("img", node).one("load", function () {
-         var index = $.inArray(this.__src__, access_tool.App.pendingUrls);
-         access_tool.App.pendingUrls.splice(index, 1);
-         if(access_tool.App.pendingUrls.length===0){
-             $(overlay).trigger("overlay-idle");
-         }
-      });
-      return node;
-  };
-  return overlay;
-};
 
 
 /**
