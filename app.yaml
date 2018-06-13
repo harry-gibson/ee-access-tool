@@ -1,6 +1,7 @@
 runtime: python27
 api_version: 1
 threadsafe: true
+default_expiration: "14d"
 # the export takes way way over 10 minutes, which is the task limit for auto scaling, so have to
 # use basic scaling
 basic_scaling:
