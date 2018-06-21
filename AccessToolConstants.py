@@ -3,10 +3,11 @@
 ###############################################################################
 
 # The friction surface asset id, must be shared with this app's service account
-FRICTION_SURFACE = 'users/harrygibson/friction_surface_v47'
+# FRICTION_SURFACE = 'users/harrygibson/friction_surface_v47'
+FRICTION_SURFACE = 'Oxford/MAP/friction_surface_2015_v1_0'
 
 # How far to search from each source point (actually is a square not a circle)
-SEARCH_RADIUS_KM = 2000
+SEARCH_RADIUS_KM = 1000
 # Server-side limit on max number of source points to allow
 SEARCH_MAX_TARGETS = 1000
 
