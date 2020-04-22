@@ -1,5 +1,4 @@
-
-import lib.ee as ee
+import ee
 #!/usr/bin/env python
 """Required credentials configuration."""
 

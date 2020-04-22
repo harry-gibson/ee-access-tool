@@ -1,41 +1,21 @@
-runtime: python27
-api_version: 1
-threadsafe: true
+runtime: python37
 default_expiration: "14d"
 # the export takes way way over 10 minutes, which is the task limit for auto scaling, so have to
 # use basic scaling
 basic_scaling:
   max_instances: 15
 
-libraries:
-- name: jinja2
-  version: "2.6"
-- name: webapp2
-  version: "2.5.1"
-- name: pycrypto
-  version: "2.6"
 
 handlers:
-- url: /static/
+- url: /static
   static_dir: static
-  application_readable: true
-  secure: always
-
   http_headers:
     Access-Control-Allow-Origin: "*"
-- url: /exportrunner
-  script: server.access_app
-  secure: always
-  # the exportrunner endpoint can only be called from within the app (users call export)
-  login: admin
 - url: /.*
-  script: server.access_app
+  script: auto
   secure: always
-
-skip_files:
-- ^(.*/)?#.*#$
-- ^(.*/)?.*~$
-- ^(.*/)?.*\.py[co]$
-- ^(.*/)?.*/RCS/.*$
-- ^(.*/)?\..*$
-- Crypto
+#- url: /exportrunner
+#  script: server.access_app
+#  secure: always
+  # the exportrunner endpoint can only be called from within the app (users call export)
+#  login: admin

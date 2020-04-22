@@ -2,7 +2,7 @@ import string
 import random
 import time
 import json
-import lib.ee as ee
+import ee
 from AccessToolConstants import *
 
 
@@ -145,7 +145,7 @@ def GetAccessMapId_Pretty(eeAccessImage):
     try:
         return sldImage.getMapId({'opacity':0.8})
     except:
-        print getMapPaletteString()
+        print (getMapPaletteString())
 
 
 ###############################################################################

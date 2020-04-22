@@ -7,3 +7,13 @@ The tool allows users to create their own accessibility maps interactively, or u
 The tool is online at access-mapper.appspot.com
 
 The tool was created by Harry Gibson with CSS assistance from [Jake Ozga](https://www.jozga.co.uk/)
+
+Setup - CURRENTLY BROKEN
+all linux shit is broken as too hard to get pip to install into lib folder. The pip version doesn't work with the necessary switches. Using virtualenv is all broken. Fuck it all.
+
+Use python 2.7 for now because everything is different at 3 and app engine structure needs total rewrite
+
+Use powershell, use python 2.7, in project folder: 
+ C:\Python27\ArcGISx6410.6\python.exe -m pip install -r .\requirements.txt -t lib
+Add lib to pythonpath environment variable before trying to import ee
+ 
