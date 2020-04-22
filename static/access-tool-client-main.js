@@ -14,8 +14,10 @@ var app;
 */
 access_tool.boot = function(eeMapId, eeToken){
   google.load('maps', '3',
-      {
-        'other_params': 'key=AIzaSyBkOap6kiM4Qss3s_ImM3ALqz5KDoejAoM&libraries=drawing'
+      {   // key for ee-api-testing
+          'other_params': 'key=AIzaSyAKG7sWP6OzVg2l5De0pkVNgCwz-DwNxl8&libraries=drawing'
+          // key for access-mapper
+        //'other_params': 'key=AIzaSyBkOap6kiM4Qss3s_ImM3ALqz5KDoejAoM&libraries=drawing'
       });
   //google.load('jquery', '1');
 
@@ -146,10 +148,10 @@ access_tool.App.prototype.createMap = function(mapLayer){
   };
   var mapElement = $('.map').get(0);
   var map = new google.maps.Map(mapElement, mapOptions);
-  //map.setOptions({styles: access_tool.App.SILVER_STYLES});
+  map.setOptions({styles: access_tool.App.SILVER_STYLES});
   if (mapLayer) {
       // an initial overlay map such as the friction surface or a population map or something
-      //map.overlayMapTypes.push(mapLayer);
+      map.overlayMapTypes.push(mapLayer);
   }
   return map;
 };
