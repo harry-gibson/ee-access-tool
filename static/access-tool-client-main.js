@@ -83,7 +83,9 @@ access_tool.App = function(eeMapId, eeToken) {
         }
         else{
             emailform.removeClass('is-invalid').addClass('is-valid');
-            $('#exportModal .exportFire').prop("disabled", false);
+            // TODO: remove when fixed.
+            // Disable export for now until rewritten for appengine py3
+            //$('#exportModal .exportFire').prop("disabled", false);
         }
     });
 
