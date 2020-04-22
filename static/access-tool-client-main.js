@@ -15,9 +15,9 @@ var app;
 access_tool.boot = function(eeMapId, eeToken){
   google.load('maps', '3',
       {   // key for ee-api-testing
-          'other_params': 'key=AIzaSyAKG7sWP6OzVg2l5De0pkVNgCwz-DwNxl8&libraries=drawing'
+          // 'other_params': 'key=AIzaSyAKG7sWP6OzVg2l5De0pkVNgCwz-DwNxl8&libraries=drawing'
           // key for access-mapper
-        //'other_params': 'key=AIzaSyBkOap6kiM4Qss3s_ImM3ALqz5KDoejAoM&libraries=drawing'
+          'other_params': 'key=AIzaSyBkOap6kiM4Qss3s_ImM3ALqz5KDoejAoM&libraries=drawing'
       });
   //google.load('jquery', '1');
 
