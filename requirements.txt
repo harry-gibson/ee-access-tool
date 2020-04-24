@@ -1,3 +1,7 @@
 earthengine-api==0.1.218
 flask
 jinja2
+google-cloud-tasks
+googleapis_common_protos
+google-cloud-logging
+requests

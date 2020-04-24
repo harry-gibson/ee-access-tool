@@ -10,8 +10,20 @@ import os
 from AccessToolStaticHelpers import *
 
 from flask import request, Flask, abort
+from google.cloud import tasks_v2
+import requests
+#import google.cloud.logging
 
 app = Flask(__name__)
+
+taskClient = tasks_v2.CloudTasksClient()
+PROJECT = 'access-mapper'
+QUEUE = 'access-mapper-queue'
+LOCATION = 'europe-west2'
+FULL_QUEUE_NAME = taskClient.queue_path(PROJECT, LOCATION, QUEUE)
+
+#client = google.cloud.logging.Client()
+#client.setup_logging()
 
 ee.Initialize(config.EE_CREDENTIALS)
 ee.data.setDeadline(URL_FETCH_TIMEOUT)
@@ -26,41 +38,6 @@ JINJA2_ENVIRONMENT = jinja2.Environment(
     extensions=['jinja2.ext.autoescape'])
 
 
-###############################################################################
-#                             Web request handlers.                           #
-###############################################################################
-#
-# class DataHandler(webapp2.RequestHandler):
-#     """Base class for servlets to respond to queries.
-#
-#     Taken from EE export-to-drive template but also just as applicable to the
-#     trendy-lights derived code for the cost path map"""
-#     def get(self):
-#         self.Handle(self.DoGet)
-#
-#     def post(self):
-#         self.Handle(self.DoPost)
-#
-#     def DoGet(self):
-#         """Processes a GET request and returns a JSON-encodable result."""
-#         raise NotImplementedError()
-#
-#     def DoPost(self):
-#         """Processes a POST request and returns a JSON-encodable result."""
-#         raise NotImplementedError()
-#
-#     def Handle(self, handle_function):
-#         """Responds with the result of the handle_function or errors, if any."""
-#         # Note: The fetch timeout is thread-local so must be set separately
-#         # for each incoming request.
-#         urlfetch.set_default_fetch_deadline(URL_FETCH_TIMEOUT)
-#         try:
-#             response = handle_function()
-#         except Exception as e:  # pylint: disable=broad-except
-#             response = {'error': str(e)}
-#         if response:
-#             self.response.headers['Content-Type'] = 'application/json'
-#             self.response.out.write(json.dumps(response))
 
 @app.route('/')
 def getMain():
@@ -138,19 +115,27 @@ def getImageValue():
 
 @app.route('/export', methods=['POST'])
 def postExport():
-    """A servlet to handle requests for image exports
+    """A servlet to handle requests for image exports"""
+    task = {
+        'app_engine_http_request':{
+            'http_method': 'POST',
+            'relative_uri': '/exportrunner',
+            'headers': {'Content-Type': 'application/json'}
+        }
+    }
+    payload = {
+        'filename': request.form.get('filename'),
+        'email': request.form.get('email'),
+        'region': request.form.get('region'),
+        'sourcepoints': request.form.get('sourcepoints')
+    }
+    payload_converted = json.dumps(payload).encode()
+    task['app_engine_http_request']['body'] = payload_converted
 
-        Adapted from the EE export-to-drive sample. This is called by the client (javascript) and submits a
-        task to the default push queue.
-        App engine will then run this task, in the form of submitting a task to the exportrunner
-        URL endpoint - the one which actually runs the export."""
-    pass
-    #taskqueue.add(url='/exportrunner', params={
-    #    'filename': request.args.get('filename'),
-    #    'email': request.args.get('email'),
-    #    'region': request.args.get('region'),
-    #    'sourcepoints': request.args.get('sourcepoints')
-    #})
+    response = taskClient.create_task(FULL_QUEUE_NAME, task)
+    logging.info("Created task {}".format(response.name))
+    return response.name
+
 
 @app.route('/exportrunner', methods=['POST'])
 def runExport():
@@ -188,13 +173,14 @@ def runExport():
 
     # as user: admin is not supported anymore instead we need to check for this header on the request
     # 'HTTP_USER_AGENT': 'AppEngine-Google; (+http://code.google.com/appengine; appid: s~my-project)'
-    incoming_app_id = request.headers.get('X-Appengine-Inbound-Appid', None)
-    if incoming_app_id not in ["hello"]:
-        abort(403, "unauthorised")
+    #print(str(request.headers))
+    incoming_task_queue = request.headers.get('X-Appengine-QueueName', None)
+    if incoming_task_queue != QUEUE:
+        logging.error("Unauthorised request made to exporter, {}".format(incoming_task_queue))
+        #abort(403, "unauthorised: queue name was " + incoming_task_queue)
+
 
     def _EmailLinkToUser(self, link, email):
-        fromAddr = config.APP_SENDER_ADDRESS
-        toAddr = email
         subject = "Your Accessibility Map export"
         body = "Hi there,\n\n" \
                "Your export from the Malaria Atlas Project Accessibility Mapping tool has completed successfully.\n\n" \
@@ -202,6 +188,14 @@ def runExport():
                + link + \
                "\n\nNote that this link will remain active for 48 hours, after which time the output data will be deleted " \
                "and you would have to re-run your search."
+        logging.info("mail not setup yet, would send: \n"+body)
+        result = requests.post(config.MAILGUN_BASE_URL,
+                               auth=("api", config.MAILGUN_API_KEY),
+                               data={"from": config.APP_SENDER_ADDRESS,
+                                     "to": email,
+                                     "subject": subject,
+                                     "text": body})
+        return result
         #mail.send_mail(sender=fromAddr,
         #               to=toAddr,
         #               subject=subject,
@@ -216,14 +210,16 @@ def runExport():
                 config.APP_STORAGE_BUCKET + "/" +
                 temp_file_prefix + ".tif")
 
-    requestRegion = request.form.get('region')
+    content = request.get_json()
+    #print(content)
+    requestRegion = content['region']
     arrRegion = jsonRegionToArrayCoords(requestRegion)
     # TODO re-add filename box and then add code to rename the exported file, avoiding conflict
     # filename = self.request.get('filename')
-    email = request.form.get('email')
+    email = content['email']
 
     # Get the image to export, i.e. (re)run the cost mapping with the points
-    sourcePts = request.form.get('sourcepoints')
+    sourcePts = content['sourcepoints']
     eeSourcePts = jsonPtsToFeatureColl(sourcePts)
     srcImage = paintPointsToImage(eeSourcePts)
     costImage = computeCostDist(srcImage, computationScale=NATIVE_RESOLUTION)
@@ -264,7 +260,7 @@ def runExport():
             #_SendMessage(json.dumps({'error': 'Failed to give file to user: ' + str(e)}))
     else:
         pass  # _SendMessage({'error': 'Task failed (id: %s).' % task.id})
-
+    return "Task Success"
 
 if __name__ == '__main__':
     # This is used when running locally only. When deploying to Google App

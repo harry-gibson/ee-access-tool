@@ -85,7 +85,7 @@ access_tool.App = function(eeMapId, eeToken) {
             emailform.removeClass('is-invalid').addClass('is-valid');
             // TODO: remove when fixed.
             // Disable export for now until rewritten for appengine py3
-            //$('#exportModal .exportFire').prop("disabled", false);
+            $('#exportModal .exportFire').prop("disabled", false);
         }
     });
 
@@ -621,7 +621,8 @@ access_tool.App.prototype.queryResultPost = function(e){
   var infoWindow = new google.maps.InfoWindow({
       content: "Retrieving value, please wait..."
   });
-  newMarker.addListener('click', function(){
+  // noinspection JSDeprecatedSymbols
+    newMarker.addListener('click', function(){
       infoWindow.open(newMarker.get('map'), newMarker);
   });
   infoWindow.open(newMarker.get('map'), newMarker);

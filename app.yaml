@@ -14,8 +14,4 @@ handlers:
 - url: /.*
   script: auto
   secure: always
-#- url: /exportrunner
-#  script: server.access_app
-#  secure: always
-  # the exportrunner endpoint can only be called from within the app (users call export)
-#  login: admin
+

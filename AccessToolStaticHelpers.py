@@ -26,18 +26,22 @@ def getMapPaletteString():
     sld_ramp = ACCESSIBILITY_STYLE['ramp_template'].format(*newBreaks)
     return sld_ramp
 
+
 def jsonPtsToFeatureColl(requestPts):
     """Converts json points from the web request into an EE feature collection"""
     jsonPts = json.loads(requestPts)
+    return pointsObjToFeatureColl(jsonPts)
+
+def pointsObjToFeatureColl(pointsObj):
     coords = []
     nPts = 0
-    for items in jsonPts:
+    for items in pointsObj:
         nPts += 1
         if nPts == SEARCH_MAX_TARGETS:
             # set a server-side limit on the number of sources in case of client-side shenanigans
             break
         try:
-            pt = ee.Geometry.Point(items['lng'],items['lat'])
+            pt = ee.Geometry.Point(items['lng'], items['lat'])
             coords.append(pt)
         except:
             pass
@@ -54,19 +58,25 @@ def jsonRegionToJsonRectangle(requestRegion):
     rect = jsonRegionToEERectangle(requestRegion).toGeoJSONString()
     return rect
 
+def regionObjToEERectangle(regionObj):
+    rect = ee.Geometry.Rectangle([regionObj['west'], regionObj['south'],
+                                  regionObj['east'], regionObj['north']])
+    return rect
+
 def jsonRegionToEERectangle(requestRegion):
     jsonRegion = json.loads(requestRegion)
-    rect = ee.Geometry.Rectangle([jsonRegion['west'],jsonRegion['south'],
-                                  jsonRegion['east'],jsonRegion['north']])
-    return rect
+    return regionObjToEERectangle(jsonRegion)
+
+def regionObjToArrayCoords(regionObj):
+    w = regionObj['west']
+    e = regionObj['east']
+    n = regionObj['north']
+    s = regionObj['south']
+    return [[w, s], [w, n], [e, n], [e, s]]
 
 def jsonRegionToArrayCoords(requestRegion):
     jsonRegion = json.loads(requestRegion)
-    w = jsonRegion['west']
-    e = jsonRegion['east']
-    n = jsonRegion['north']
-    s = jsonRegion['south']
-    return [[w,s], [w,n], [e,n], [e,s]]
+    return regionObjToArrayCoords(jsonRegion)
 
 def computeCostDist(sourcesImage, clip=False, computationScale=NATIVE_RESOLUTION):
     """Runs the cost-distance map to the provided sources on the friction surface"""
