@@ -11,9 +11,11 @@ import os
 from AccessToolStaticHelpers import *
 
 from flask import request, Flask, abort
-from google.cloud import tasks_v2
+from google.cloud import tasks_v2, storage
 import requests
 import google.cloud.logging
+import datetime
+from slugify import slugify
 
 app = Flask(__name__)
 
@@ -26,6 +28,10 @@ FULL_QUEUE_NAME = taskClient.queue_path(PROJECT, LOCATION, QUEUE)
 logClient = google.cloud.logging.Client()
 logClient.setup_logging()
 import logging
+
+storage_client = storage.Client()
+# for local testing:
+#os.environ['GOOGLE_APPLICATION_CREDENTIALS']="path/to/privatekey-file.json"
 
 ee.Initialize(config.EE_CREDENTIALS)
 ee.data.setDeadline(URL_FETCH_TIMEOUT)
@@ -214,14 +220,24 @@ def runExport():
                                      "text": body})
         return result
 
+    def _GetFilenameSlug(emailAddr):
+        timeSlug = datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+        emailSlug = slugify(emailAddr)
+        fn = '-'.join(['access-mapper-export', timeSlug, emailSlug])
+        return fn
+
     def _GetExportedFileLink(temp_file_prefix):
-        # list files matching temp_file_prefix in config.APP_STORAGE_BUCKET bucket
-        # grant access to the one
-        # get and return link to it
+        # rename the exported file from its temporary name to something probably unique
+        # and relevant, and return the public link to it
         # TODO rename the file to something specific to the user? Zip it up with metadata?
-        return ("https://storage.googleapis.com/" +
-                config.APP_STORAGE_BUCKET + "/" +
-                temp_file_prefix + ".tif")
+        newFilename = _GetFilenameSlug(email)
+        bucket = storage_client.bucket(config.APP_STORAGE_BUCKET)
+        blob = bucket.blob(temp_file_prefix + '.tif')
+        new_blob = bucket.rename_blob(blob, newFilename + '.tif')
+        return new_blob.public_url
+        #return ("https://storage.googleapis.com/" +
+        #        config.APP_STORAGE_BUCKET + "/" +
+        #        temp_file_prefix + ".tif")
 
     content = request.get_json()
     #print(content)

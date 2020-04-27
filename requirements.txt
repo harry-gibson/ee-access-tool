@@ -5,3 +5,4 @@ google-cloud-tasks
 googleapis_common_protos
 google-cloud-logging
 requests
+python-slugify
