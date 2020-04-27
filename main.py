@@ -12,7 +12,7 @@ from AccessToolStaticHelpers import *
 from flask import request, Flask, abort
 from google.cloud import tasks_v2
 import requests
-#import google.cloud.logging
+import google.cloud.logging
 
 app = Flask(__name__)
 
@@ -22,8 +22,9 @@ QUEUE = 'access-mapper-queue'
 LOCATION = 'europe-west2'
 FULL_QUEUE_NAME = taskClient.queue_path(PROJECT, LOCATION, QUEUE)
 
-#client = google.cloud.logging.Client()
-#client.setup_logging()
+logClient = google.cloud.logging.Client()
+logClient.setup_logging()
+import logging
 
 ee.Initialize(config.EE_CREDENTIALS)
 ee.data.setDeadline(URL_FETCH_TIMEOUT)
@@ -180,7 +181,7 @@ def runExport():
         #abort(403, "unauthorised: queue name was " + incoming_task_queue)
 
 
-    def _EmailLinkToUser(self, link, email):
+    def _EmailLinkToUser(link, emailAddr):
         subject = "Your Accessibility Map export"
         body = "Hi there,\n\n" \
                "Your export from the Malaria Atlas Project Accessibility Mapping tool has completed successfully.\n\n" \
@@ -188,20 +189,31 @@ def runExport():
                + link + \
                "\n\nNote that this link will remain active for 48 hours, after which time the output data will be deleted " \
                "and you would have to re-run your search."
-        logging.info("mail not setup yet, would send: \n"+body)
+        logging.info("Sending success email containing link: \n" + link)
         result = requests.post(config.MAILGUN_BASE_URL,
                                auth=("api", config.MAILGUN_API_KEY),
                                data={"from": config.APP_SENDER_ADDRESS,
-                                     "to": email,
+                                     "to": emailAddr,
                                      "subject": subject,
                                      "text": body})
         return result
-        #mail.send_mail(sender=fromAddr,
-        #               to=toAddr,
-        #               subject=subject,
-        #               body=body)
 
-    def _GetExportedFileLink(self, temp_file_prefix):
+    def _EmailErrorMessage(msg, emailAddr):
+        subject = "Accessibility Map export - Error"
+        body = "Hi there,\n\n " \
+               "Unfortunately an error occurred exporting your accessibility map.\n\n" \
+               "The error message was: \n\n" \
+               + msg
+        logging.info("Sending error email containing message: " + msg)
+        result = requests.post(config.MAILGUN_BASE_URL,
+                               auth=("api", config.MAILGUN_API_KEY),
+                               data={"from": config.APP_SENDER_ADDRESS,
+                                     "to": emailAddr,
+                                     "subject": subject,
+                                     "text": body})
+        return result
+
+    def _GetExportedFileLink(temp_file_prefix):
         # list files matching temp_file_prefix in config.APP_STORAGE_BUCKET bucket
         # grant access to the one
         # get and return link to it
@@ -256,10 +268,13 @@ def runExport():
             link = _GetExportedFileLink(temp_file_prefix)
             _EmailLinkToUser(link, email)
         except Exception as e:  # pylint: disable=broad-except
-            logging.info('Error in file handover ' + str(e))
+            logging.warn('Error in file handover ' + str(e))
             #_SendMessage(json.dumps({'error': 'Failed to give file to user: ' + str(e)}))
     else:
-        pass  # _SendMessage({'error': 'Task failed (id: %s).' % task.id})
+        logging.warn('Earth Engine task failed!')
+        _EmailErrorMessage('EE Task failed (id: %s)' % task.id, email)
+        return "Task Error"
+         # _SendMessage({'error': 'Task failed (id: %s).' % task.id})
     return "Task Success"
 
 if __name__ == '__main__':
