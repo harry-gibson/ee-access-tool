@@ -3,11 +3,10 @@ import ee
 import jinja2
 import config
 import mail_config_key
-#import socket
 import logging
+#these have all been replaced in py3.7 migration
 #from google.appengine.api import urlfetch,  taskqueue, mail
 import os
-# from AccessToolConstants import *
 from AccessToolStaticHelpers import *
 
 from flask import request, Flask, abort
@@ -20,6 +19,7 @@ from slugify import slugify
 app = Flask(__name__)
 
 taskClient = tasks_v2.CloudTasksClient()
+# this queue needs to be created and configured first in gcloud commandline or console
 PROJECT = 'access-mapper'
 QUEUE = 'access-mapper-queue'
 LOCATION = 'europe-west2'
@@ -35,8 +35,6 @@ storage_client = storage.Client()
 
 ee.Initialize(config.EE_CREDENTIALS)
 ee.data.setDeadline(URL_FETCH_TIMEOUT)
-#socket.setdefaulttimeout(URL_FETCH_TIMEOUT)
-#urlfetch.set_default_fetch_deadline(URL_FETCH_TIMEOUT)
 
 # Create the Jinja templating system we use to dynamically generate HTML. See:
 # http://jinja.pocoo.org/docs/dev/
@@ -44,8 +42,6 @@ JINJA2_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
     autoescape=True,
     extensions=['jinja2.ext.autoescape'])
-
-
 
 @app.route('/')
 def getMain():
@@ -100,9 +96,9 @@ def getImageValue():
     """Servlet to handle calculating the accessibility value for a single location.
 
         This entails running the full analysis as for the CostPathHandler but then returning
-        the image value at a given point rather than the image itself. This is really really
+        the image value at a given point rather than the image itself. This is quite
         slow, which may be an inevitable consequence of the EE lazy processing but feels a bit
-        wrong"""
+        wrong. That said it's got a lot faster since this was written."""
 
     sourcePts = request.form.get('sourcepoints')
     eeSourcePts = jsonPtsToFeatureColl(sourcePts)
@@ -123,7 +119,10 @@ def getImageValue():
 
 @app.route('/export', methods=['POST'])
 def postExport():
-    """A servlet to handle requests for image exports"""
+    """A servlet to handle requests for image exports
+    Called by the client code, constructs a task the payload of which will be to call the exportrunner endpoint.
+    Submits this task to the Cloud Tasks queue, which in turn will run the task and thus call the export in a
+    separate process."""
     task = {
         'app_engine_http_request':{
             'http_method': 'POST',
@@ -147,20 +146,17 @@ def postExport():
 
 @app.route('/exportrunner', methods=['POST'])
 def runExport():
-    """A servlet for handling async export task requests
-
-    Adapted from the EE export-to-drive sample. This handler is configured in app.yaml
-    to only be available to admin users, which includes internal appengine requests.
-    Thus, it can't be called externally, only from the ExportHandler handler (in
-    response to a user request to /export).
-
-    This has now been modified to export to a cloud storage bucket, not a user's Drive account,
-    bypassing the need for users to authenticate
-
+    """A servlet for handling async export task requests.
     Exports an image for the year and region, gives it to the user.
 
-        This is called by our trusted export handler and runs as a separate
-        process.
+    Adapted from the EE export-to-drive sample. This handler is the one that actually runs the export. As the
+    task takes a very long time, it needs to run asynchronously, which we do via a task. This handler can therefore
+    only be called by the taskrunner, not the external site. At app engine 3.7 we enforce this by looking for a header
+    that only the task queue can set. (At app engine 2.7, we used the internal task service and used app.yaml to
+    configure access to this endpoint.)
+
+    Unlike in the original EE sample here we export to a cloud storage bucket, not a user's Drive account,
+    bypassing the need for users to authenticate
 
         HTTP Parameters:
           region: the map extent to export for, should be set from the client viewport
@@ -170,15 +166,6 @@ def runExport():
 
         """
 
-        # Note that the response from this is only seen by the task queue service, there
-        # is no path back from here to the client that submitted the request to /export.
-        # That is why we use the channel api to get a message back, and replacing it needs
-        # some thought.
-
-        # At present this works fine if we are exporting a pre-existing assets such as the friction
-        # surface. However for the on-the-fly accessibility map it is catastrophically slow to the
-        # extent that it times out with auto-scaling unless you do a really small area.
-
     # as user: admin is not supported anymore instead we need to check for this header on the request
     # 'HTTP_USER_AGENT': 'AppEngine-Google; (+http://code.google.com/appengine; appid: s~my-project)'
     #print(str(request.headers))
@@ -187,8 +174,8 @@ def runExport():
         logging.error("Unauthorised request made to exporter, {}".format(incoming_task_queue))
         #abort(403, "unauthorised: queue name was " + incoming_task_queue)
 
-
     def _EmailLinkToUser(link, emailAddr):
+        # Use Mailgun to email link to the user
         subject = "Your Accessibility Map export"
         body = "Hi there,\n\n" \
                "Your export from the Malaria Atlas Project Accessibility Mapping tool has completed successfully.\n\n" \
@@ -206,6 +193,7 @@ def runExport():
         return result
 
     def _EmailErrorMessage(msg, emailAddr):
+        # Use Mailgun to email error to the user
         subject = "Accessibility Map export - Error"
         body = "Hi there,\n\n " \
                "Unfortunately an error occurred exporting your accessibility map.\n\n" \
@@ -240,11 +228,8 @@ def runExport():
         #        temp_file_prefix + ".tif")
 
     content = request.get_json()
-    #print(content)
     requestRegion = content['region']
     arrRegion = jsonRegionToArrayCoords(requestRegion)
-    # TODO re-add filename box and then add code to rename the exported file, avoiding conflict
-    # filename = self.request.get('filename')
     email = content['email']
 
     # Get the image to export, i.e. (re)run the cost mapping with the points
@@ -252,8 +237,6 @@ def runExport():
     eeSourcePts = jsonPtsToFeatureColl(sourcePts)
     srcImage = paintPointsToImage(eeSourcePts)
     costImage = computeCostDist(srcImage, computationScale=NATIVE_RESOLUTION)
-    #costImage = ee.Image(FRICTION_SURFACE)
-    #image = GetExportableImage(_GetImage(), region)
 
     # Use a unique prefix to identify the exported file. If we want a user specified filename then
     # we'll have to think about how we protect access so one can't overwrite another and much faff
@@ -272,7 +255,7 @@ def runExport():
     task.start()
     logging.info('Started EE task (id: %s) exporting to prefix %s', task.id, temp_file_prefix)
 
-    # Wait for the task to complete (taskqueue auto times out after 10 mins).
+    # Wait for the task to complete (v2.7 taskqueue auto times out after 10 mins, unsure about Cloud Tasks yet).
     while task.active():
         logging.info('Polling for task (id: %s).', task.id)
         time.sleep(TASK_POLL_FREQUENCY)

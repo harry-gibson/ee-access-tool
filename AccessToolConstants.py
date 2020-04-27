@@ -28,7 +28,7 @@ ACCESS_BAND = "cumulative_cost"
 # The resolution of the exported images (meters per pixel).
 # This corresponds to the native resolution of the pre-baked friction surface.
 # Cost-path maps will only be "correct" when created at this resolution because
-# at coarser scales we are blurring out the prsence of roads, borders, etc.
+# at coarser scales we are blurring out the presence of roads, borders, etc.
 NATIVE_RESOLUTION = 927.662423820733
 
 # The calculation scale for interactive mapping / querying to enable it to happen
