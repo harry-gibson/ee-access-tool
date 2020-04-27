@@ -2,6 +2,7 @@
 import ee
 import jinja2
 import config
+import mail_config_key
 #import socket
 import logging
 #from google.appengine.api import urlfetch,  taskqueue, mail
@@ -191,7 +192,7 @@ def runExport():
                "and you would have to re-run your search."
         logging.info("Sending success email containing link: \n" + link)
         result = requests.post(config.MAILGUN_BASE_URL,
-                               auth=("api", config.MAILGUN_API_KEY),
+                               auth=("api", mail_config_key.MAILGUN_API_KEY),
                                data={"from": config.APP_SENDER_ADDRESS,
                                      "to": emailAddr,
                                      "subject": subject,
@@ -206,7 +207,7 @@ def runExport():
                + msg
         logging.info("Sending error email containing message: " + msg)
         result = requests.post(config.MAILGUN_BASE_URL,
-                               auth=("api", config.MAILGUN_API_KEY),
+                               auth=("api", mail_config_key.MAILGUN_API_KEY),
                                data={"from": config.APP_SENDER_ADDRESS,
                                      "to": emailAddr,
                                      "subject": subject,

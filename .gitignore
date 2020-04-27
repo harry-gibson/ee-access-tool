@@ -1,7 +1,6 @@
 # ee security and build related stuff
 *.pem
 access-mapper-*.json
-config.py
 lib/
 .idea/
 _xlib/
@@ -92,9 +91,5 @@ ENV/
 # Spyder project settings
 .spyderproject
 
-# Rope project settings
-.ropeproject
-_run_dev_server.txt
-index_prev.html
-sample_export_data.json
-
+# mailgun api key
+/mail_config_key.py
