@@ -14,8 +14,10 @@ var app;
 */
 access_tool.boot = function(eeMapId, eeToken){
   google.load('maps', '3',
-      {
-        'other_params': 'key=AIzaSyBkOap6kiM4Qss3s_ImM3ALqz5KDoejAoM&libraries=drawing'
+      {   // key for ee-api-testing
+          // 'other_params': 'key=AIzaSyAKG7sWP6OzVg2l5De0pkVNgCwz-DwNxl8&libraries=drawing'
+          // key for access-mapper
+          'other_params': 'key=AIzaSyBkOap6kiM4Qss3s_ImM3ALqz5KDoejAoM&libraries=drawing'
       });
   //google.load('jquery', '1');
 
@@ -81,6 +83,8 @@ access_tool.App = function(eeMapId, eeToken) {
         }
         else{
             emailform.removeClass('is-invalid').addClass('is-valid');
+            // TODO: remove when fixed.
+            // Disable export for now until rewritten for appengine py3
             $('#exportModal .exportFire').prop("disabled", false);
         }
     });
@@ -617,7 +621,8 @@ access_tool.App.prototype.queryResultPost = function(e){
   var infoWindow = new google.maps.InfoWindow({
       content: "Retrieving value, please wait..."
   });
-  newMarker.addListener('click', function(){
+  // noinspection JSDeprecatedSymbols
+    newMarker.addListener('click', function(){
       infoWindow.open(newMarker.get('map'), newMarker);
   });
   infoWindow.open(newMarker.get('map'), newMarker);
@@ -695,7 +700,30 @@ access_tool.App.prototype.getFilename = function(){
     }
 };
 
-access_tool.App.prototype.getEeMapLayer_Tracked = function(eeMapId, eeToken) {
+access_tool.App.prototype.getEeMapLayer_Tracked = function(eeMapId){
+    if (eeMapId === "None") {
+        return null;
+    }
+    // on the python side, the map id is just a string.
+    // The EarthEngineTileSource expects (well, ee.Data.getTileUrl does) it to be an
+    // object with a property called formatTileUrl. It looks (line 20591) like it is intended
+    // to create this if it isn't present but it only checks (if id.!formatTileUrl), not
+    // if (id.formatTileUrl === undefined)
+    // There's an undocumented function below it called makeMapId:
+    var mapIdObj = ee.data.makeMapId_(eeMapId);
+    // The ImageOverlay differs from MapOverlay in that it needs an EarthEngineTileSource object,
+    // it seems (not documented, like every other fucking thing)
+    var tileSource = new ee.layers.EarthEngineTileSource(mapIdObj);
+    var layer = new ee.layers.ImageOverlay(tileSource);
+    layer.addTileCallback((function(event){
+        // the event's property for number tiles remaining has changed from count to loadingTileCount,
+        // not documented, like every other fucking thing
+        this.updateLoadStatus(event.loadingTileCount);
+    }).bind(this));
+    return layer;
+};
+
+access_tool.App.prototype.getEeMapLayer_Tracked_old = function(eeMapId, eeToken) {
   // return null if no ee overlay map is required (will then just make a plain googlemap)
   if (eeMapId === "None" || eeToken === "None"){
     return null;
@@ -706,7 +734,8 @@ access_tool.App.prototype.getEeMapLayer_Tracked = function(eeMapId, eeToken) {
       eeMapId, eeToken, {name: "Custom Accessibility Map"}
   );
   layer.addTileCallback((function(event){
-      this.updateLoadStatus(event.count);
+      this.updateLoadStatus(event.loadingTileCount);
+
   }).bind(this));
 
 

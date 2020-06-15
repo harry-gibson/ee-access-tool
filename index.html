@@ -22,7 +22,7 @@
 <!-- The Google JavaScript loader tool (for the Maps, Charts APIs). -->
   <script src="https://www.google.com/jsapi"></script>
 
-  <script src="/static/ee_api_js.js"></script>
+  <script src="/static/ee_api_js_debug.js"></script>
   <!-- Accessibility Tool javascript. -->
   <script src="/static/access-tool-client-main.js"></script>
 
@@ -31,7 +31,7 @@
 
 <body class="fadeIn fadeInD3">
 
-  <a id="map-logo" href="https://www.map.ox.ac.uk" target="_blank">
+  <a id="map-logo" href="https://www.malariaatlas.org" target="_blank">
     <img
          class="d-none d-md-block"
          alt="Malaria Atlas Project"
@@ -173,10 +173,10 @@
                     </div>
                     <div id="tab1collapseZero" class="collapse show" aria-labelledby="tab1headingZero" data-parent="#tab1accordion">
                       <div class="card-body">
-                        <p>This is the online Accessibility Mapping generation tool, associated with the recent <a href="https://map.ox.ac.uk/research-project/accessibility_to_cities/" target="_blank">Global Map of Accessibility to Cities</a> published in
+                        <p>This is the online Accessibility Mapping generation tool, associated with the recent <a href="https://www.malariaatlas.org/research-project/accessibility_to_cities/" target="_blank">Global Map of Accessibility to Cities</a> published in
                           <a href="https://www.nature.com/articles/nature25181" target="_blank">Nature</a> in January 2018.</p>
                         <p>The published map represents the travel time to a specific set of city points. This tool is provided to enable you to create new accessibility maps on-demand, to "destinations" of your choice.</p>
-                        <p>This tool is provided by the <a href="https://www.map.ox.ac.uk" target="_blank">Malaria Atlas Project</a> in conjunction with Google, using the <a href="https://earthengine.google.com/" target="_blank">Google Earth Engine</a> platform.</p>
+                        <p>This tool is provided by the <a href="https://www.malariaatlas.org" target="_blank">Malaria Atlas Project</a> in conjunction with Google, using the <a href="https://earthengine.google.com/" target="_blank">Google Earth Engine</a> platform.</p>
                       </div>
                     </div>
 
@@ -206,7 +206,7 @@
                     <div id="tab1collapseTwo" class="collapse" aria-labelledby="tab1headingTwo" data-parent="#tab1accordion">
                       <div class="card-body">
                         <p>Existing, published maps of global accessibility including the new version
-                          <a href="https://map.ox.ac.uk/research-project/accessibility_to_cities/"> published recently</a> show the estimated time to travel from any point on earth to the nearest
+                          <a href="https://www.malariaatlas.org/research-project/accessibility_to_cities/"> published recently</a> show the estimated time to travel from any point on earth to the nearest
                           <span class="font-weight-bold">densely-populated area</span> (specifically, a town or city above a certain size). These maps give
                           a useful general proxy for the ease with which people in rural areas can <span class="font-weight-bold">access services and resources</span>
                           which are more likely to be found in more urban areas.</p>
@@ -403,6 +403,7 @@
               <button type="button" class="close" data-dismiss="modal">x</button>
           </div>
           <div class="modal-body">
+            <!--<p style="color:red; font-weight: bold" >EXPORT IS CURRENTLY UNAVAILABLE WHILST WE MIGRATE THE HOSTING OF THIS SITE - BACK SOON!</p>-->
             <p>You can export the map as it is currently shown on screen to a GeoTIFF file for use in a GIS program.</p>
             <p>The map export will be limited to the area currently shown on the map, so pan the map to the area you're interested in before beginning the export.
                 You can currently only export a limited area, so if you zoom out too far then the export button
